@@ -1,0 +1,138 @@
+:root {
+  --base-border-radius: 0.5rem;
+}
+
+/* Enable font ligatures */
+.md-typeset code,
+.md-typeset kbd,
+.md-typeset pre {
+	font-feature-settings: "kern", "liga";
+	font-variant-ligatures: normal;
+}
+
+/* Set header background image */
+.md-header,
+.md-tabs {
+	background-image: url(../images/backgrounds/background.jpg);
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+.md-banner {
+	overflow: auto;
+	text-align: center;
+}
+
+/* Adjust logo container padding/margin if needed */
+.md-header__button.md-logo {
+	margin: 0;
+	padding: 0;
+}
+
+/* Set the desired height and width for the logo image/SVG */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+	height: 4rem; /* Adjust this value as needed */
+	width: 4rem;  /* Adjust this value as needed */
+}
+
+/* Top nav items get bolded and underlined when active */
+.md-tabs__item {
+	font-weight: normal;
+}
+.md-tabs__item--active {
+	font-weight: bold;
+	text-decoration: underline;
+}
+
+/* Adjust the maximum width of the main content area */
+.md-main__inner.md-grid {
+	max-width: 80%; /* Removes the default max-width limit */
+}
+
+/* Change font family of filename present on top of code block. */
+.highlight span.filename {
+	background-color: #1E90FF;
+	border-bottom: .05rem solid #30363d;
+	border-radius: .3rem;
+	display: inline;
+	font-size: .85em;
+	font-weight: 700;
+	margin-top: 1em;
+	padding: .6617647059em 1.1764705882em;
+	text-decoration-color: #ffffff;
+}
+.highlight span.filename + pre > code {
+	border-radius: var(--base-border-radius);
+	border-top-left-radius: 0;
+}
+.md-typeset pre > code {
+	border-radius: var(--base-border-radius);
+}
+
+/* Runded corners for Tables */
+.md-typeset table:not([class]) {
+	border-radius: var(--base-border-radius);
+}
+
+/* Markdown Button */
+.md-typeset .md-button {
+	border-radius: var(--base-border-radius);
+}
+
+/* Rounded search bar */
+.md-search__form {
+	border-radius: 0.5rem;
+}
+
+/* Search bar when active - round top, square bottom for results dropdown */
+[data-md-toggle="search"]:checked ~ .md-header .md-search__form {
+	border-radius: 0.5rem 0.5rem 0 0;
+}
+
+/* Round bottom of search results */
+.md-search__output {
+	border-end-start-radius: 0.5rem;
+	border-end-end-radius: 0.5rem;
+}
+
+[data-md-toggle="search"]:checked ~ .md-header .md-search__output {
+	box-shadow: none;
+}
+
+.md-search__scrollwrap {
+	border-end-start-radius: 0.5rem;
+	border-end-end-radius: 0.5rem;
+}
+
+/* Content tabs - custom background colors */
+/* .md-typeset .tabbed-labels > label { */
+/* 	background-color: #828385; */
+/* 	border-radius: 0.25rem 0.25rem 0 0; */
+/* } */
+/* Hover color */
+.md-typeset .tabbed-labels > label:hover {
+	background-color: #61aefa;
+}
+  
+/* Active tab - repeat for each tab position */
+.md-typeset .tabbed-set > input:first-child:checked ~ .tabbed-labels > :first-child,
+.md-typeset .tabbed-set > input:nth-child(2):checked ~ .tabbed-labels > :nth-child(2),
+.md-typeset .tabbed-set > input:nth-child(3):checked ~ .tabbed-labels > :nth-child(3),
+.md-typeset .tabbed-set > input:nth-child(4):checked ~ .tabbed-labels > :nth-child(4),
+.md-typeset .tabbed-set > input:nth-child(5):checked ~ .tabbed-labels > :nth-child(5),
+.md-typeset .tabbed-set > input:nth-child(6):checked ~ .tabbed-labels > :nth-child(6),
+.md-typeset .tabbed-set > input:nth-child(7):checked ~ .tabbed-labels > :nth-child(7),
+.md-typeset .tabbed-set > input:nth-child(8):checked ~ .tabbed-labels > :nth-child(8),
+.md-typeset .tabbed-set > input:nth-child(9):checked ~ .tabbed-labels > :nth-child(9),
+.md-typeset .tabbed-set > input:nth-child(10):checked ~ .tabbed-labels > :nth-child(10),
+.md-typeset .tabbed-set > input:nth-child(11):checked ~ .tabbed-labels > :nth-child(11),
+.md-typeset .tabbed-set > input:nth-child(12):checked ~ .tabbed-labels > :nth-child(12) {
+	background-color: #1E90FF;
+}
+
+/* Center images hack */
+img[src*='#center'] { 
+    display: block;
+    margin: auto;
+}

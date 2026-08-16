@@ -1,0 +1,3 @@
+# Deployments
+
+We are responsible for assisting the Linux and Dev Teams for both Linux and Windows deployments for the IM Integration Modules, IDP applications and services, Globalscape, etc. Generally, a SNOW Request will be opened and assigned to our Group, App Support - NA DMS ITAR or App Support - Kofax FISMA, with instructions on how to complete the deployment. Do not hesitate to reach out to whoever opened the Request as these folks are very nice and always willing to help and educate.
