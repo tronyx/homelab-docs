@@ -2,7 +2,7 @@
 
 # Homelab Documentation
 
-This is the main repository for the NA DMS ITAR EIT Team lead by Min Ham.
+This is the main repository for my Homelab documentation.
 
 ## MkDocs
 
