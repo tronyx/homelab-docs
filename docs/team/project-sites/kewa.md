@@ -1,1 +1,0 @@
-# Kent, WA (KEWA)
