@@ -44,18 +44,15 @@ plugins:
       type: datetime # or datetime, iso_date, iso_datetime, timeago
       timezone: America/New_York
       locale: en
-#  - git-committers:
-#      gitlab_repository: 76796971
-#      token: !ENV ["CI_JOB_TOKEN"]
   - git-authors
   - mkdocs-video
   - open-in-new-tab:
       add_icon: true
-  - optimize:
-      enabled: !ENV [CI, false]
-      cache: true
-      optimize_png: true
-      optimize_jpg: true
+#  - optimize:
+#      enabled: !ENV [CI, false]
+#      cache: true
+#      optimize_png: true
+#      optimize_jpg: true
   - search
 extra_css:
   - overrides/assets/stylesheets/extra.css
