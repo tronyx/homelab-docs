@@ -51,7 +51,11 @@ plugins:
   - mkdocs-video
   - open-in-new-tab:
       add_icon: true
-#  - optimize
+  - optimize:
+      enabled: !ENV [CI, false]
+      cache: true
+      optimize_png: true
+      optimize_jpg: true
   - search
 extra_css:
   - overrides/assets/stylesheets/extra.css
