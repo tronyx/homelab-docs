@@ -1,0 +1,30 @@
+# MkDocs
+#mkdocs>=1.5.3
+mkdocs
+
+# Material for MkDocs
+#mkdocs-material>=5.4.0
+mkdocs-material
+
+# Zensical
+#zensical
+
+# GLightbox images plugin
+mkdocs-glightbox
+
+# Footer stuff
+mkdocs-git-revision-date-localized-plugin
+#mkdocs-git-committers-plugin-2
+mkdocs-git-authors-plugin
+
+# Open in a new tab plugin
+mkdocs-open-in-new-tab
+
+# Mkdocs video embed plugin
+mkdocs-video
+
+# Pngquant PNG optimizer
+pngquant
+
+# Pillow JPG optimizer
+Pillow
