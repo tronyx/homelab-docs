@@ -115,6 +115,18 @@ nav:
     - index.md
   - PRIMARY LAB:
     - labs/primary.md
+    - Automated Docker updates:
+      - labs/docker-updates/index.md
+      - labs/docker-updates/prerequisites.md
+      - labs/docker-updates/backup.md
+      - labs/docker-updates/komodo.md
+      - labs/docker-updates/move-stacks.md
+      - labs/docker-updates/critical-stacks.md
+      - labs/docker-updates/webhooks.md
+      - labs/docker-updates/renovate.md
+      - labs/docker-updates/daily-use.md
+      - labs/docker-updates/lessons.md
+      - labs/docker-updates/scripts.md
   - GITOPS LAB:
     - labs/gitops.md
   - INFRASTRUCTURE:
