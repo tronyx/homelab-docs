@@ -201,7 +201,11 @@ The Periphery of `server-b` connects out to Core through the route. It uses an o
 
 1. In Komodo, create a Server Onboarding Key and copy it. Komodo shows the key only once.
 
-    <!-- screenshot: komodo-onboarding-key.png -->
+    ![The Onboarding tab in the Komodo settings, with the Create Onboarding Key dialog open](../../overrides/assets/images/docker-updates/komodo-onboarding-key.png)
+
+    /// caption
+    Settings, then Onboarding, then New Onboarding Key. Komodo shows the key after you click Create.
+    ///
 
 2. On `server-b`, get the latest repository files and make the data folders:
 

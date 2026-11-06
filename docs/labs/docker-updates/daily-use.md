@@ -20,7 +20,11 @@ Each day, Renovate opens pull requests for new images, up to 10 at a time. You r
 4. For a normal stack, wait for the new run of the Procedure of its server. The stack of the pull request takes a few seconds in the log, and the other stacks less than a second.
 5. For a critical stack, nothing deploys. When you are ready, click Deploy on the Stack in Komodo. In the Compose Up stage, the changed service shows `Recreated`, and the others show `Running`. Then do the steps in "Find an update that did not deploy" below.
 
-    <!-- screenshot: komodo-deploy-log.png -->
+    ![The Compose Up stage of a Deploy in Komodo, with the docker compose command and the containers that Compose recreated](../../overrides/assets/images/docker-updates/komodo-deploy-log.png)
+
+    /// caption
+    The Compose Up stage of a Deploy. Both services of this stack changed, so both show `Recreated`.
+    ///
 
 6. Record the state again, and compare the configured image (field 2), the image ID (field 3) and the start time (field 8):
 
