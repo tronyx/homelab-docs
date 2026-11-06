@@ -4,6 +4,7 @@ site_dir: public
 site_description: Stop using your head to store documentation. Write it here!
 repo_name: homelab-docs
 repo_url: https://github.com/tronyx/homelab-docs
+edit_uri: edit/main/docs/
 
 markdown_extensions:
   - abbr
