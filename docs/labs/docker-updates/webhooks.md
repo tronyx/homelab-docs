@@ -17,8 +17,16 @@ Do these steps in Komodo, for each server.
 4. Click Save. A stage that you add or change has no effect until you save the Procedure.
 5. Open the webhook section of the Procedure, and turn the webhook on for the branch `main`. Copy the webhook URL that Komodo shows. It has the form `https://<komodo-host>/listener/github/procedure/<procedure-id>/main`.
 
-<!-- screenshot: komodo-procedure.png -->
-<!-- screenshot: komodo-procedure-webhook.png -->
+![The Procedure deploy-changed-server-a in Komodo, with one stage that runs Batch Deploy Stack If Changed on six named Stacks](../../overrides/assets/images/docker-updates/komodo-procedure.png)
+
+/// caption
+The stage of the Procedure for `server-a`. The target names each normal Stack.
+///
+![The webhook section of the Procedure, with the branch main, the webhook URL and the webhook turned on](../../overrides/assets/images/docker-updates/komodo-procedure-webhook.png)
+
+/// caption
+The webhook section of the same Procedure. The button next to the URL copies it.
+///
 
 The Procedure pulls the Repo itself before it compares, so after a merge you do not click Pull. When you add a stack to Komodo later, add its name to the pattern of the Procedure for its server, and click Save.
 

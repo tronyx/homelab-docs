@@ -129,10 +129,15 @@ Do these steps on `server-a`.
 
 3. In Komodo, open Settings, then Variables. Create one Variable for each line, with the secret option on. Use the name before `=` and the text between the outer single quotes as the value, exactly as shown.
 
-    <!-- screenshot: komodo-variables.png -->
+    ![The Variables tab in the Komodo settings, with a list of Variables whose values are hidden and whose Secret toggles are on](../../overrides/assets/images/docker-updates/komodo-variables.png)
+
+    /// caption
+    Variables with the secret option on. Komodo hides their values in the page and in the logs.
+    ///
 
     !!! warning "Variables are shared by all servers"
         A Variable name is the service name and the key, such as `SONARR_DB_DB_PASSWORD`. If a service with the same name exists on both servers, both use one Variable. Before you create one, make sure that no Variable of that name exists. If it exists with another value, rename one of the services in the large file first.
+
 4. Open Stacks and create a Stack named `server-a-media`:
 
     - Server: `server-a`
@@ -143,7 +148,11 @@ Do these steps on `server-a`.
     - Image Registry: `docker.io`, with your Docker Hub account
     - Environment: the text from step 1
 
-    <!-- screenshot: komodo-stack.png -->
+    ![The configuration of the Stack server-b-monitoring in Komodo: Server, Repo, Run Directory, File Paths, Environment, and Poll for Updates and Auto Update turned off](../../overrides/assets/images/docker-updates/komodo-stack.png)
+
+    /// caption
+    A normal Stack on `server-b`. On `server-a`, the names say `server-a` instead. Project Name and Image Registry are farther down the page.
+    ///
 
 5. Make sure that Auto Update and Poll For Updates are off. Auto Update can change an image without a pull request, which is what this whole setup avoids.
 

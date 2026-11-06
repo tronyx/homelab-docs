@@ -192,7 +192,11 @@ The first real run opens up to 10 pull requests and an issue named Dependency Da
 3. The `0 / 1` in the list of pull requests is the checkbox that Renovate puts in each pull request. Tick it to make Renovate rebuild the branch on its next run. It is not a test result.
 4. Merge the pull request in Forgejo.
 
-<!-- screenshot: renovate-pull-request.png -->
+![A merged Renovate pull request in Forgejo, with the table of the digest update and the note that the critical stack needs a Deploy](../../overrides/assets/images/docker-updates/renovate-pull-request.png)
+
+/// caption
+A pull request for a critical stack, with the note under the table. Renovate opened it before the `deploy-by-hand` label existed, so it has no label.
+///
 
 What happens after the merge depends on the folder:
 
