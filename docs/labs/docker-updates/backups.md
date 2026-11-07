@@ -144,8 +144,8 @@ If you check your apps with Healthchecks and use [Tronitor](https://github.com/t
 
 ```json
 "tronitor": {
-  "path": "/opt/tronitor/tronitor.sh",
-  "lock_dir": "/opt/tronitor/tmp",
+  "path": "tronitor",
+  "lock_dir": "/tmp",
   "monitors": {
     "media": ["Sonarr", "Radarr"],
     "proxy": ["*"]
@@ -153,10 +153,11 @@ If you check your apps with Healthchecks and use [Tronitor](https://github.com/t
 }
 ```
 
-- `monitors` names the tests by the names that `tronitor.sh -m hc -l` shows. `["*"]` means every test that is neither paused nor down. Use it for a stack that many checks depend on, such as the reverse proxy.
+- `path` is the Tronitor command. A command without a folder is found on the `PATH`. The script reads Tronitor's list with `--json`, so it needs the Python version of Tronitor. The older Bash script `tronitor.sh` does not have `--json`.
+- `monitors` names the tests by the names that `tronitor -m hc -l` shows. `["*"]` means every test that is neither paused nor down. Use it for a stack that many checks depend on, such as the reverse proxy.
 - A test that is already paused or down is left alone, so a test that you paused by hand stays paused.
-- After the start, a test counts as unpaused only when Tronitor's list shows it, and the script tries again for up to 5 minutes. Tronitor can exit with 0 while Healthchecks itself is still starting.
-- `lock_dir` is optional. Set it to Tronitor's temp folder if your check scripts skip an app while `<test ID>.lock` exists there. The script then creates those lock files, and `healthchecks.lock` for `"*"`, and removes the ones that Tronitor writes when it pauses a test.
+- After the start, a test counts as unpaused only when Tronitor's list shows it, and the script tries again for up to 5 minutes. Right after the stack that runs Healthchecks starts, Healthchecks may not answer yet.
+- `lock_dir` is optional. Set it to Tronitor's lock folder, `/tmp` by default, if your check scripts skip an app while `<test ID>.lock` exists there. The script then creates those lock files, and `healthchecks.lock` for `"*"`. After the unpause, it removes the lock files that are left, also those that Tronitor keeps for a test whose unpause failed.
 
 ### Hooks
 

@@ -1496,8 +1496,8 @@ Backs up every Compose stack of a server with restic, one stopped stack at a tim
           "timeout_minutes": 60,
           "retention": {"keep_daily": 7, "keep_weekly": 4},
           "tronitor": {
-            "path": "/opt/tronitor/tronitor.sh",
-            "lock_dir": "/opt/tronitor/tmp",
+            "path": "tronitor",
+            "lock_dir": "/tmp",
             "monitors": {"media": ["Sonarr", "Radarr"], "proxy": ["*"]}
           },
           "hooks": {
@@ -1526,12 +1526,15 @@ Backs up every Compose stack of a server with restic, one stopped stack at a tim
     keep_monthly, keep_yearly, passed to `restic forget --prune`, grouped by
     host and tags. Default {"keep_weekly": 4}.
     tronitor: optional. While a stack is stopped, its Healthchecks tests are
-    paused with Tronitor (-m hc), by the names that `-l` shows. ["*"] means
+    paused with the Python Tronitor (-m hc), by the names that `-l` shows. The
+    tool reads the list with --json, which the old Bash Tronitor does not have.
+    path is the command, found on the PATH when it has no folder. ["*"] means
     every test that is neither paused nor down. Tests that are already paused
     or down are left alone. A test counts as unpaused only when Tronitor's list
     shows it. With lock_dir, the tool also creates <test ID>.lock for each test
-    (healthchecks.lock for "*") in Tronitor's temp folder, and removes the lock
-    files that Tronitor writes, so that local check scripts skip the stack.
+    (healthchecks.lock for "*") in Tronitor's lock folder (/tmp by default),
+    and removes the lock files that Tronitor writes, so that local check
+    scripts skip the stack.
     hooks: optional commands, as lists of words, run without a shell, with a
     5-minute limit and no secrets:
         before_run    after the run lock and the mount check
@@ -1624,12 +1627,10 @@ Backs up every Compose stack of a server with restic, one stopped stack at a tim
     # restic and the storage keys of its backends: S3, B2, Azure, Google Cloud
     # Storage, OpenStack Swift, rclone.
     RESTIC_KEY_PREFIXES = ("RESTIC_", "AWS_", "B2_", "AZURE_", "GOOGLE_", "OS_", "ST_", "RCLONE_")
-    TRONITOR = "/root/scripts/tronitor/tronitor_no_jq.sh"
-    TEST_LINE = re.compile(r"^(?P<name>.+?)\s+ID:\s+(?P<id>\S+)\s+Status:\s+(?P<status>\S+)\s*$")
-    COLOUR_CODE = re.compile(r"\x1b\[[0-9;]*m")
+    TRONITOR = "tronitor"
     GLOBAL_LOCK = "healthchecks.lock"
     # Tests in these states are not paused: a paused one may be paused by hand,
-    # and Tronitor unpauses by sending a ping, which would mark a down test up.
+    # and a down one already alerts, so a pause would only hide the outage.
     LEAVE_ALONE = ("paused", "down")
     UNPAUSE_TRIES = 10
     UNPAUSE_WAIT_S = 30
@@ -1980,16 +1981,27 @@ Backs up every Compose stack of a server with restic, one stopped stack at a tim
                 return None
 
         def tests(self):
-            """Return {name: (test_id, status)} as Tronitor lists them, or None."""
-            result = self._run("-l")
+            """Return {name: (test_id, status)} as Tronitor lists them, or None.
+
+            --json prints the Healthchecks API records. Output that is not a
+            JSON list, such as the table of the old Bash Tronitor, gives None.
+            """
+            result = self._run("-l", "--json")
             if result is None or result.returncode != 0:
                 return None
+            try:
+                records = json.loads(result.stdout)
+            except ValueError:
+                return None
+            if not isinstance(records, list):
+                return None
             found = {}
-            # Tronitor colours its list even when the output is not a terminal.
-            for line in COLOUR_CODE.sub("", result.stdout).splitlines():
-                match = TEST_LINE.match(line.strip())
-                if match:
-                    found[match["name"]] = (match["id"], match["status"])
+            for record in records:
+                if not isinstance(record, dict):
+                    continue
+                name, test_id, status = record.get("name"), record.get("uuid"), record.get("status")
+                if all(isinstance(value, str) for value in (name, test_id, status)):
+                    found[name] = (test_id, status)
             return found
 
         def pause(self, names):
@@ -1999,9 +2011,9 @@ Backs up every Compose stack of a server with restic, one stopped stack at a tim
             return result is not None and result.returncode == 0
 
         def unpause(self, names):
-            """One unpause call. Its exit code is not proof: Tronitor exits 0
-            even when Healthchecks is still starting and nothing was unpaused,
-            so restore_monitors reads the test list afterwards."""
+            """One unpause call. Its exit code is not enough: right after
+            Healthchecks starts, the call can fail, so restore_monitors reads
+            the test list afterwards."""
             if not names:
                 return True
             result = self._run("-u", ",".join(names))
@@ -2083,8 +2095,8 @@ Backs up every Compose stack of a server with restic, one stopped stack at a tim
         """Remove the lock files, then unpause what quiet_monitors paused.
 
         A test counts as unpaused only when Tronitor's list says so: right after
-        the monitoring stack starts, Healthchecks may not answer yet, and Tronitor
-        then exits 0 without unpausing anything. Up to UNPAUSE_TRIES rounds,
+        the monitoring stack starts, Healthchecks may not answer yet, or may list
+        no tests yet. Up to UNPAUSE_TRIES rounds,
         UNPAUSE_WAIT_S apart, each for the tests that are still paused.
 
         Tronitor also writes <test ID>.lock when it pauses a test, and removes it
