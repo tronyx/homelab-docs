@@ -17,7 +17,7 @@ This guide turns that file into a GitOps setup. GitOps means that a Git reposito
 4. The merge sends a webhook to Komodo. A Komodo Procedure deploys only the stacks that changed.
 5. Critical stacks, such as the reverse proxy and Forgejo itself, wait for your click on Deploy.
 
-To roll back an update, you revert its merge commit, and Komodo deploys the old image again.
+To roll back an update, you revert its merge commit, and Komodo deploys the old image again. Once a week, a backup of every stack keeps the data of your stacks safe as well.
 
 ## The example setup
 
@@ -90,8 +90,9 @@ Do the parts in this order. Each part ends in a working state.
 6. [Webhooks](webhooks.md): a merge deploys the changed stacks.
 7. [Renovate](renovate.md): pull requests for new images.
 8. [Daily use](daily-use.md): merge, check, roll back, reboot.
-9. [Lessons learned](lessons.md): the traps that cost time.
-10. [Scripts](scripts.md): every script and configuration file in full.
+9. [Weekly backups](backups.md): a restic backup of every stack, one stopped stack at a time.
+10. [Lessons learned](lessons.md): the traps that cost time.
+11. [Scripts](scripts.md): every script and configuration file in full.
 
 !!! note "What this guide does not cover"
     It does not install Forgejo, SWAG or Docker. It expects that they run already, as services in your large compose file or elsewhere.

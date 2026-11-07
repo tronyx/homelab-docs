@@ -1,13 +1,13 @@
 ---
 title: Scripts
-description: The six scripts and the configuration files of the Docker update setup, in full, with what each one is for.
+description: The seven scripts and the configuration files of the Docker update setup, in full, with what each one is for.
 ---
 
 # Scripts
 
 Copy these files into your repository, at the paths in their titles. Each block opens with a click, and the button at its top right copies the whole file.
 
-The six scripts are general: they read the names of your servers from the stack maps, and they hold no names of their own. Each one explains itself at the top of the file. They need Python 3.9 or later and bash, and nothing else.
+The seven scripts are general: they read the names of your servers from the stack maps or, for `backup_stacks.py`, from its config, and they hold no names of their own. Each one explains itself at the top of the file. They need Python 3.9 or later and bash, and `backup_stacks.py` also needs restic.
 
 ## The scripts
 
@@ -1418,6 +1418,1477 @@ Searches every tracked file and every commit of the repository for the real secr
         sys.exit(main())
     ```
 
+### backup_stacks.py
+
+Backs up every Compose stack of a server with restic, one stopped stack at a time, and starts each stack again. It reports to Discord, Healthchecks.io or ntfy, and can pause Healthchecks tests with Tronitor and run hooks.
+
+- When: once a week from a systemd timer, and by hand for a dry run, a seed or a restore. See [Weekly backups](backups.md).
+- Reads: `/etc/backup-stacks/<name>.json` (example below) and `/etc/backup-stacks/<name>.env`. It does not use the stack map.
+- Example: `python3 -I /usr/local/sbin/backup_stacks.py server-a --all --dry-run`
+- Needs: restic, and Docker with the Compose plugin.
+- Exit codes: 0 every stack backed up, 1 something failed, 2 wrong arguments, config or secrets (no stack was stopped).
+
+??? example "tools/backup_stacks.py"
+
+    ```python
+    #!/usr/bin/env python3
+    """Back up every Docker Compose stack on a server with restic, one stopped
+    stack at a time.
+
+    Why
+    ---
+    A copy of a database folder is only consistent while the database is
+    stopped. This tool stops one stack, backs up the folders it mounts, and
+    starts it again, so each stack is down for only its own backup. restic
+    stores each chunk of data once, so after the first run a backup writes
+    only what changed. Each snapshot also holds a manifest of the stack's
+    containers, images and digests, so a restore knows which image can read
+    the files.
+
+    It finds stacks by the Compose project label, so it works with Komodo,
+    Portainer, Dockge or plain `docker compose`. It never pulls an image, never
+    runs `docker compose down`, never deletes a container or volume, and starts
+    every stack that was running, also when the backup of that stack fails.
+
+    It needs Python 3.9 or later (standard library only), Docker with the
+    Compose plugin, and restic. Run it as root.
+
+    Usage
+    -----
+        backup_stacks.py NAME --all
+        backup_stacks.py NAME STACK [STACK ...]
+        backup_stacks.py NAME --all --dry-run
+        backup_stacks.py NAME --all --seed
+        backup_stacks.py NAME --restic ARGS...
+        backup_stacks.py --config PATH --all
+
+    NAME reads the config /etc/backup-stacks/NAME.json. --config PATH reads a
+    config elsewhere; the first word after it is then a stack name. STACK is a
+    Compose project name, as `docker compose ls` shows it. --all takes every
+    project on the server except those in "exclude".
+
+    --dry-run prints the order, and for each stack the running services, the
+    paths to back up, the missing and skipped paths, and the tests to pause.
+    It reads no secrets, stops nothing and runs no restic.
+
+    --seed makes the first snapshot of each stack without stopping it and
+    without a time limit. Snapshots of running databases can be torn, so seed
+    snapshots get the tag `seed` and are never meant for a restore. After the
+    first stopped run of a stack succeeds, its seed snapshots are deleted.
+
+    --restic runs restic with the rest of the command line and the secrets
+    file, for example `--restic init`, `--restic snapshots` or `--restic
+    restore latest --tag stack:STACK --target /root/restore`. Use it instead of
+    sourcing the secrets file in a shell: the shell expands $, backticks and
+    backslashes in values, and this tool reads them literally.
+
+    The config file
+    ---------------
+    /etc/backup-stacks/NAME.json. Only data_roots is required. An unknown key
+    is an error, so a typing mistake cannot silently turn off a setting.
+
+        {
+          "data_roots": ["/srv/appdata"],
+          "host": "server-a",
+          "require_mount": "/mnt/backup",
+          "last": ["monitoring", "proxy"],
+          "exclude": ["scratch"],
+          "timeout_minutes": 60,
+          "retention": {"keep_daily": 7, "keep_weekly": 4},
+          "tronitor": {
+            "path": "/opt/tronitor/tronitor.sh",
+            "lock_dir": "/opt/tronitor/tmp",
+            "monitors": {"media": ["Sonarr", "Radarr"], "proxy": ["*"]}
+          },
+          "hooks": {
+            "before_run": ["touch", "/run/backup-running"],
+            "after_run": ["rm", "-f", "/run/backup-running"]
+          }
+        }
+
+    data_roots: bind mounts inside these folders are backed up. Named volumes
+    are always backed up; anonymous volumes and everything else are skipped
+    and listed in the report. Absolute folders, not / itself.
+    host: restic's --host. Default: the machine's host name.
+    secrets_file: default NAME.env next to the config.
+    require_mount: checked before the run and before each stack. If it does not
+    answer, no further stack is stopped.
+    last: stacks that go at the end, in this order. The rest go first, in
+    alphabetical order.
+    exclude: stacks that --all leaves out. A stack named on the command line
+    still runs.
+    A name in last, exclude or tronitor.monitors that matches no stack on the
+    server is a note in the report and in the dry run, so a typing mistake
+    shows up.
+    timeout_minutes: per stack. restic is killed at the limit and the stack
+    starts again. Default 60.
+    retention: at least one of keep_last, keep_hourly, keep_daily, keep_weekly,
+    keep_monthly, keep_yearly, passed to `restic forget --prune`, grouped by
+    host and tags. Default {"keep_weekly": 4}.
+    tronitor: optional. While a stack is stopped, its Healthchecks tests are
+    paused with Tronitor (-m hc), by the names that `-l` shows. ["*"] means
+    every test that is neither paused nor down. Tests that are already paused
+    or down are left alone. A test counts as unpaused only when Tronitor's list
+    shows it. With lock_dir, the tool also creates <test ID>.lock for each test
+    (healthchecks.lock for "*") in Tronitor's temp folder, and removes the lock
+    files that Tronitor writes, so that local check scripts skip the stack.
+    hooks: optional commands, as lists of words, run without a shell, with a
+    5-minute limit and no secrets:
+        before_run    after the run lock and the mount check
+        before_stop   before a stack is stopped (BACKUP_STACK)
+        after_start   after it started again, also after a failure
+                      (BACKUP_STACK, BACKUP_STACK_OK=1 or 0)
+        after_run     after the last stack, also on SIGTERM (BACKUP_RUN_OK=1
+                      only when the whole run finished without a failure)
+    A --seed run only runs before_run and after_run. A hook's output goes to
+    the run's output (the journal under systemd). A hook that fails, hangs or
+    cannot start is a note in the report, never a failure of the backup. On a
+    SIGTERM, hooks share the time systemd allows for the stop (TimeoutStopSec).
+    manifest_dir, lock_path: default /var/lib/backup-stacks/manifests and
+    /run/backup-stacks.lock. Give manifest_dir a folder of its own: a folder
+    the tool creates is limited to root. secrets_file, require_mount,
+    manifest_dir, lock_path and tronitor.lock_dir must be absolute paths.
+
+    The secrets file
+    ----------------
+    /etc/backup-stacks/NAME.env, owned by root, mode 600, with KEY=value lines.
+    Put each value in single quotes.
+
+        RESTIC_REPOSITORY=...      or RESTIC_REPOSITORY_FILE
+        RESTIC_PASSWORD=...        or RESTIC_PASSWORD_FILE, RESTIC_PASSWORD_COMMAND
+        AWS_ACCESS_KEY_ID=...      storage keys: any key that starts with AWS_,
+                                   B2_, AZURE_, GOOGLE_, OS_, ST_ or RCLONE_
+                                   goes to restic
+        DISCORD_WEBHOOK_URL=...    optional: a Discord embed
+        HC_PING_URL=...            optional: Healthchecks.io /start, success, /fail
+        NTFY_URL=...               optional: the ntfy topic URL
+        NTFY_TOKEN=...             optional: an ntfy access token
+
+    Only restic gets the restic and storage keys. The tool refuses a file that
+    others can read, and its messages name keys, never values.
+
+    What a run does
+    ---------------
+    1. Takes the run lock. If another run holds it, it stops with exit code 2.
+    2. If require_mount does not answer, it reports and stops with exit code 2.
+    3. Runs before_run and `restic unlock`.
+    4. For each stack: runs before_stop, quiets its tests, stops its running
+       services (120 s grace for databases), runs `restic backup` with the tag
+       stack:STACK and the host, starts the services again (3 tries, then
+       `docker start`), restores the tests and runs after_start. If the target
+       stops answering or a backup times out, no further stack is stopped.
+    5. Unless --seed: deletes the seed snapshots of the stacks that succeeded,
+       runs `restic forget --prune` with the retention, and `restic check`.
+    6. Runs after_run, sends the report to each notification channel.
+
+    On SIGTERM (systemctl stop, the unit's time limit, a shutdown), the stack
+    that is down is started again, its tests are restored, after_run runs and
+    the report is sent before the tool exits.
+
+    Exit codes: 0 every stack backed up, 1 something failed (the report says
+    what), 2 wrong arguments, config or secrets, another run active, or the
+    backup share missing. With exit code 2, no stack was stopped.
+    """
+    import argparse
+    import json
+    import os
+    import posixpath
+    import re
+    import signal
+    import socket
+    import subprocess
+    import sys
+    import time
+    from dataclasses import dataclass, field
+    from typing import Dict, List, Optional
+
+    NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
+    ANONYMOUS_VOLUME = re.compile(r"[0-9a-f]{64}")
+    PROJECT_LABEL = "com.docker.compose.project"
+    SERVICE_LABEL = "com.docker.compose.service"
+    DOCKER_TIMEOUT_S = 300
+    STOP_GRACE_S = 120
+    STOP_TIMEOUT_S = 900
+    START_TRIES = 3
+    START_WAIT_S = 60
+    KILL_WAIT_S = 60
+    DEAD_TARGET = "not backed up: backup target not answering"
+    PROGRESS_FPS = "0.016666"
+
+
+    # Each entry: the keys of which one must be set. restic reads all of them.
+    REQUIRED_SECRETS = (
+        ("RESTIC_REPOSITORY", "RESTIC_REPOSITORY_FILE"),
+        ("RESTIC_PASSWORD", "RESTIC_PASSWORD_FILE", "RESTIC_PASSWORD_COMMAND"),
+    )
+    # restic and the storage keys of its backends: S3, B2, Azure, Google Cloud
+    # Storage, OpenStack Swift, rclone.
+    RESTIC_KEY_PREFIXES = ("RESTIC_", "AWS_", "B2_", "AZURE_", "GOOGLE_", "OS_", "ST_", "RCLONE_")
+    TRONITOR = "/root/scripts/tronitor/tronitor_no_jq.sh"
+    TEST_LINE = re.compile(r"^(?P<name>.+?)\s+ID:\s+(?P<id>\S+)\s+Status:\s+(?P<status>\S+)\s*$")
+    COLOUR_CODE = re.compile(r"\x1b\[[0-9;]*m")
+    GLOBAL_LOCK = "healthchecks.lock"
+    # Tests in these states are not paused: a paused one may be paused by hand,
+    # and Tronitor unpauses by sending a ping, which would mark a down test up.
+    LEAVE_ALONE = ("paused", "down")
+    UNPAUSE_TRIES = 10
+    UNPAUSE_WAIT_S = 30
+    CONFIG_DIR = "/etc/backup-stacks"
+    MANIFEST_DIR = "/var/lib/backup-stacks/manifests"
+    LOCK_PATH = "/run/backup-stacks.lock"
+    CONFIG_KEYS = (
+        "host", "data_roots", "secrets_file", "require_mount", "last", "exclude",
+        "timeout_minutes", "retention", "tronitor", "hooks", "manifest_dir", "lock_path",
+    )
+    RETENTION_KEYS = ("keep_last", "keep_hourly", "keep_daily", "keep_weekly", "keep_monthly", "keep_yearly")
+    TRONITOR_KEYS = ("path", "lock_dir", "monitors")
+    HOOK_NAMES = ("before_run", "before_stop", "after_start", "after_run")
+
+
+    class StepError(Exception):
+        """A Docker or restic step failed. The message is safe to report."""
+
+
+    class UsageError(Exception):
+        """Wrong arguments, settings or secrets file. Nothing was touched."""
+
+
+    def _check_keys(where, data, allowed):
+        if not isinstance(data, dict):
+            raise UsageError(f"{where} must be an object")
+        unknown = sorted(set(data) - set(allowed))
+        if unknown:
+            raise UsageError(f"{where}: unknown key {unknown[0]}")
+
+
+    def _words(value):
+        return isinstance(value, list) and all(isinstance(word, str) and word for word in value)
+
+
+    def _absolute(value):
+        """A non-empty absolute path (also on Windows, where the tests run)."""
+        return isinstance(value, str) and bool(value) and (value.startswith("/") or os.path.isabs(value))
+
+
+    def _positive(value):
+        return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+    def load_config(path, name, hostname=socket.gethostname):
+        """Read the config file, check every key, and fill in the defaults.
+
+        An unknown key is an error, so a typing mistake cannot silently turn off
+        a setting. The secrets file defaults to NAME.env next to the config.
+        """
+        if not os.path.isfile(path):
+            raise UsageError(f"no config {path}")
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except ValueError as error:
+            raise UsageError(f"{path} is not valid JSON: {getattr(error, 'msg', error)}")
+        _check_keys(path, data, CONFIG_KEYS)
+        roots = data.get("data_roots")
+        if not (_words(roots) and roots and all(root.startswith("/") for root in roots)):
+            raise UsageError(f"{path}: data_roots must be a list of absolute folders, for example [\"/home\"]")
+        roots = [posixpath.normpath(root) for root in roots]
+        if "/" in roots:
+            raise UsageError(f"{path}: data_roots must not be / (that would back up the whole system)")
+        config = {
+            "host": hostname(),
+            "data_roots": roots,
+            "secrets_file": os.path.join(os.path.dirname(os.path.abspath(path)), f"{name}.env"),
+            "require_mount": None,
+            "last": [],
+            "exclude": [],
+            "timeout_minutes": 60,
+            "retention": {"keep_weekly": 4},
+            "tronitor": None,
+            "hooks": {},
+            "manifest_dir": MANIFEST_DIR,
+            "lock_path": LOCK_PATH,
+        }
+        config.update(data)
+        config["data_roots"] = roots
+        if not (isinstance(config["host"], str) and config["host"]):
+            raise UsageError(f"{path}: host must be a text value")
+        for key in ("secrets_file", "manifest_dir", "lock_path"):
+            if not _absolute(config[key]):
+                raise UsageError(f"{path}: {key} must be an absolute path")
+        if config["require_mount"] is not None and not _absolute(config["require_mount"]):
+            raise UsageError(f"{path}: require_mount must be an absolute folder")
+        for key in ("last", "exclude"):
+            if not isinstance(config[key], list) or not all(isinstance(n, str) for n in config[key]):
+                raise UsageError(f"{path}: {key} must be a list of stack names")
+        if not _positive(config["timeout_minutes"]):
+            raise UsageError(f"{path}: timeout_minutes must be a whole number above 0")
+        _check_keys(f"{path}: retention", config["retention"], RETENTION_KEYS)
+        if not config["retention"]:
+            raise UsageError(f"{path}: retention needs at least one rule, for example {{\"keep_weekly\": 4}}")
+        for key, value in config["retention"].items():
+            if not _positive(value):
+                raise UsageError(f"{path}: retention.{key} must be a whole number above 0")
+        if config["tronitor"] is not None:
+            _check_keys(f"{path}: tronitor", config["tronitor"], TRONITOR_KEYS)
+            tronitor = dict({"lock_dir": None, "monitors": {}}, **config["tronitor"])
+            if not (isinstance(tronitor.get("path"), str) and tronitor["path"]):
+                raise UsageError(f"{path}: tronitor.path must name the Tronitor script")
+            if tronitor["lock_dir"] is not None and not _absolute(tronitor["lock_dir"]):
+                raise UsageError(f"{path}: tronitor.lock_dir must be null or an absolute folder")
+            monitors = tronitor["monitors"]
+            if not isinstance(monitors, dict) or not all(_words(names) for names in monitors.values()):
+                raise UsageError(f"{path}: tronitor.monitors must map each stack to a list of test names")
+            config["tronitor"] = tronitor
+        _check_keys(f"{path}: hooks", config["hooks"], HOOK_NAMES)
+        for hook, argv in config["hooks"].items():
+            if not (_words(argv) and argv):
+                raise UsageError(f"{path}: hooks.{hook} must be a list of words, for example [\"touch\", \"/run/x\"]")
+        return config
+
+
+    def load_secrets(path, stat=os.stat):
+        """Read KEY=value lines from a file that only root can read.
+
+        Error messages name the file, a key or a line number, never a value.
+        """
+        if not os.path.isfile(path):
+            raise UsageError(f"no secrets file {path}")
+        info = stat(path)
+        if info.st_uid != 0 or info.st_mode & 0o077:
+            raise UsageError(f"{path} must belong to root and be readable only by root (chmod 600)")
+        secrets = {}
+        with open(path, encoding="utf-8") as f:
+            for number, line in enumerate(f, start=1):
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                key, sep, value = line.partition("=")
+                key = key.strip()
+                if not sep or not key:
+                    raise UsageError(f"{path} line {number} is not KEY=value")
+                value = value.strip()
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+                    value = value[1:-1]
+                secrets[key] = value
+        for keys in REQUIRED_SECRETS:
+            if not any(secrets.get(key) for key in keys):
+                raise UsageError(f"{path} has no {keys[0]} (or {', '.join(keys[1:])})")
+        return secrets
+
+
+    def restic_env(secrets, base=None):
+        """The environment for restic: base plus the restic and storage keys only."""
+        env = dict(os.environ if base is None else base)
+        env.update({k: v for k, v in secrets.items() if k.startswith(RESTIC_KEY_PREFIXES)})
+        # restic --json prints progress about 60 times a second; once a minute is plenty.
+        env.setdefault("RESTIC_PROGRESS_FPS", PROGRESS_FPS)
+        return env
+
+
+    def _container_name(container):
+        return container.get("Name", "").lstrip("/")
+
+
+    def _inside(path, folder):
+        """True if path is folder or lies below it."""
+        return path == folder or path.startswith(folder.rstrip("/") + "/")
+
+
+    def select_paths(containers, roots=("/home",)):
+        """Return (paths, skipped) for the mounts of a stack's containers.
+
+        A bind mount is kept if it lies inside one of the data roots.
+
+        paths: the folders and files to back up, sorted, without duplicates and
+        without paths that lie inside another selected path.
+        skipped: one readable line per mount that is not backed up, sorted.
+        """
+        chosen = set()
+        skipped = set()
+        for container in containers:
+            name = _container_name(container)
+            for mount in container.get("Mounts") or []:
+                kind = mount.get("Type")
+                source = posixpath.normpath(mount.get("Source") or "") if mount.get("Source") else ""
+                destination = mount.get("Destination", "")
+                if kind == "bind" and source and any(_inside(source, root) for root in roots):
+                    chosen.add(source)
+                elif kind == "volume" and ANONYMOUS_VOLUME.fullmatch(mount.get("Name") or ""):
+                    skipped.add(f"anonymous volume {destination} of {name}")
+                elif kind == "volume" and source:
+                    chosen.add(source)
+                elif kind == "bind" and source:
+                    skipped.add(f"{source} ({name})")
+                else:
+                    skipped.add(f"{kind} {destination} ({name})")
+        outer = [p for p in sorted(chosen) if not any(p != q and _inside(p, q) for q in chosen)]
+        return outer, sorted(skipped)
+
+
+    def manifest(project, containers):
+        """Describe a stack's containers, so a restore knows which image wrote the files."""
+        rows = []
+        for container in containers:
+            config = container.get("Config") or {}
+            labels = config.get("Labels") or {}
+            rows.append(
+                {
+                    "name": _container_name(container),
+                    "service": labels.get("com.docker.compose.service", ""),
+                    "image": config.get("Image", ""),
+                    "image_id": container.get("Image", ""),
+                    "state": (container.get("State") or {}).get("Status", ""),
+                    "mounts": [
+                        {
+                            "type": m.get("Type", ""),
+                            "source": m.get("Source", ""),
+                            "destination": m.get("Destination", ""),
+                        }
+                        for m in container.get("Mounts") or []
+                    ],
+                }
+            )
+        rows.sort(key=lambda row: row["name"])
+        return {"stack": project, "containers": rows}
+
+
+    def forget_args(host, retention):
+        """The restic forget command for the retention rule, flags in a fixed order."""
+        flags = []
+        for key in RETENTION_KEYS:
+            if key in retention:
+                flags += ["--" + key.replace("_", "-"), str(retention[key])]
+        return ["forget", "--host", host, "--group-by", "host,tags"] + flags + ["--prune"]
+
+
+    def order_stacks(names, last):
+        """Sort the stacks, with the names in last at the end, in last's order."""
+        unique = set(names)
+        first = sorted(name for name in unique if name not in last)
+        return first + [name for name in last if name in unique]
+
+
+    def existing_paths(paths, exists=os.path.exists):
+        """Split paths into (present, missing)."""
+        present = [p for p in paths if exists(p)]
+        missing = [p for p in paths if not exists(p)]
+        return present, missing
+
+
+    def running_services(containers):
+        """The Compose services that have a running container, sorted."""
+        return sorted(
+            {
+                ((c.get("Config") or {}).get("Labels") or {}).get(SERVICE_LABEL, "")
+                for c in containers
+                if (c.get("State") or {}).get("Status") == "running"
+            }
+            - {""}
+        )
+
+
+    class Docker:
+        """The only Docker commands the backup uses: list, inspect, stop, start.
+
+        runner stands in for subprocess.run, so tests can pass a fake.
+        """
+
+        def __init__(self, runner=subprocess.run):
+            self.runner = runner
+
+        def _run(self, args, timeout=DOCKER_TIMEOUT_S):
+            try:
+                result = self.runner(args, capture_output=True, text=True, cwd="/", timeout=timeout)
+            except subprocess.TimeoutExpired:
+                raise StepError(f"{' '.join(args[:5])} timed out after {timeout} seconds")
+            if result.returncode != 0:
+                lines = (result.stderr or result.stdout or "").strip().splitlines()
+                raise StepError(lines[-1] if lines else f"{' '.join(args[:5])} failed")
+            return result.stdout
+
+        def projects(self):
+            out = self._run(["docker", "ps", "-a", "--format", '{{.Label "' + PROJECT_LABEL + '"}}'])
+            return sorted({line.strip() for line in out.splitlines() if line.strip()})
+
+        def containers(self, project):
+            ids = self._run(["docker", "ps", "-a", "-q", "--filter", f"label={PROJECT_LABEL}={project}"]).split()
+            if not ids:
+                return []
+            return json.loads(self._run(["docker", "inspect"] + ids))
+
+        def stop(self, project, services):
+            # Databases get 120 s to shut down cleanly before Docker kills them.
+            # Compose stops one dependency level at a time, so the command
+            # itself gets a longer limit.
+            self._run(
+                ["docker", "compose", "-p", project, "stop", "-t", str(STOP_GRACE_S)] + list(services),
+                timeout=STOP_TIMEOUT_S,
+            )
+
+        def start(self, project, services):
+            self._run(["docker", "compose", "-p", project, "start"] + list(services))
+
+        def start_ids(self, ids):
+            """Last resort when compose start keeps failing: start containers by ID."""
+            self._run(["docker", "start"] + list(ids))
+
+
+    class Restic:
+        """Runs restic with the repository and password in its environment only."""
+
+        def __init__(self, env, popen=subprocess.Popen):
+            self.env = env
+            self.popen = popen
+
+        def run(self, args, timeout):
+            """Return (returncode, stdout, stderr). returncode is None after a timeout.
+
+            At the time limit restic is killed. If it does not exit within
+            KILL_WAIT_S, for example while it flushes to a dead NFS mount, it is
+            left behind, so the caller can still start the stack again.
+            """
+            process = self.popen(
+                ["restic"] + list(args), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self.env
+            )
+            try:
+                out, err = process.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                try:
+                    process.communicate(timeout=KILL_WAIT_S)
+                except subprocess.TimeoutExpired:
+                    pass
+                return None, "", f"timed out after {round(timeout / 60)} minutes"
+            except BaseException:
+                # SIGTERM (SystemExit) or Ctrl-C: do not leave restic running.
+                process.kill()
+                raise
+            return process.returncode, out, err
+
+
+    class Tronitor:
+        """Pauses and unpauses Healthchecks tests by name with Tronitor."""
+
+        def __init__(self, path=TRONITOR, runner=subprocess.run):
+            self.path = path
+            self.runner = runner
+
+        def _run(self, *args):
+            try:
+                return self.runner([self.path, "-m", "hc"] + list(args), capture_output=True, text=True, timeout=120)
+            except (OSError, subprocess.TimeoutExpired):
+                return None
+
+        def tests(self):
+            """Return {name: (test_id, status)} as Tronitor lists them, or None."""
+            result = self._run("-l")
+            if result is None or result.returncode != 0:
+                return None
+            found = {}
+            # Tronitor colours its list even when the output is not a terminal.
+            for line in COLOUR_CODE.sub("", result.stdout).splitlines():
+                match = TEST_LINE.match(line.strip())
+                if match:
+                    found[match["name"]] = (match["id"], match["status"])
+            return found
+
+        def pause(self, names):
+            if not names:
+                return True
+            result = self._run("-p", ",".join(names))
+            return result is not None and result.returncode == 0
+
+        def unpause(self, names):
+            """One unpause call. Its exit code is not proof: Tronitor exits 0
+            even when Healthchecks is still starting and nothing was unpaused,
+            so restore_monitors reads the test list afterwards."""
+            if not names:
+                return True
+            result = self._run("-u", ",".join(names))
+            return result is not None and result.returncode == 0
+
+
+    @dataclass
+    class Quiet:
+        locks: List[str] = field(default_factory=list)
+        paused: List[str] = field(default_factory=list)
+        notes: List[str] = field(default_factory=list)
+        ids: Dict[str, str] = field(default_factory=dict)
+        lock_dir: str = ""
+
+
+    def _lock(quiet, lock_dir, name):
+        if not lock_dir:
+            return  # no lock folder in the config: Tronitor only pauses
+        path = os.path.join(lock_dir, name)
+        with open(path, "w", encoding="utf-8"):
+            pass
+        os.chmod(path, 0o644)
+        quiet.locks.append(path)
+
+
+    def quiet_monitors(entry, tronitor, lock_dir, quiet=None):
+        """Silence a stack's tests: lock files for the local checks, and pauses.
+
+        entry is the stack's list from the monitor map. ["*"] means the global
+        lock and every test that is not already paused. A test that is already
+        paused, for example by hand, is not paused, so it is not unpaused later.
+        Notes name tests, never their IDs.
+
+        The caller may pass its own Quiet: it is filled as each lock is made, so
+        restore_monitors can remove them even if this function fails halfway.
+        """
+        quiet = Quiet() if quiet is None else quiet
+        quiet.lock_dir = lock_dir
+        if not entry:
+            return quiet
+        tests = tronitor.tests()
+        if tests is None:
+            quiet.notes.append("could not list tests")
+        if entry == ["*"]:
+            _lock(quiet, lock_dir, GLOBAL_LOCK)
+            to_pause = sorted(n for n, (_i, status) in (tests or {}).items() if status.lower() not in LEAVE_ALONE)
+            quiet.ids.update({name: tests[name][0] for name in to_pause})
+        elif tests is None:
+            to_pause = list(entry)
+        else:
+            by_lower = {name.lower(): name for name in tests}
+            to_pause = []
+            for wanted in entry:
+                name = by_lower.get(wanted.lower())
+                if name is None:
+                    quiet.notes.append(f"unknown test {wanted}")
+                    continue
+                test_id, status = tests[name]
+                _lock(quiet, lock_dir, f"{test_id}.lock")
+                if status.lower() not in LEAVE_ALONE:
+                    to_pause.append(name)
+                    quiet.ids[name] = test_id
+        if to_pause:
+            if not tronitor.pause(to_pause):
+                quiet.notes.append("monitor pause failed")
+            # Unpause later even after a failed pause: some tests may be paused.
+            quiet.paused = to_pause
+        return quiet
+
+
+    def _remove(path):
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+
+
+    def restore_monitors(quiet, tronitor, sleep=time.sleep):
+        """Remove the lock files, then unpause what quiet_monitors paused.
+
+        A test counts as unpaused only when Tronitor's list says so: right after
+        the monitoring stack starts, Healthchecks may not answer yet, and Tronitor
+        then exits 0 without unpausing anything. Up to UNPAUSE_TRIES rounds,
+        UNPAUSE_WAIT_S apart, each for the tests that are still paused.
+
+        Tronitor also writes <test ID>.lock when it pauses a test, and removes it
+        only for the tests its unpause reaches. Those locks are removed here in
+        every case, so the local checks ping again; a ping resumes a paused test.
+        """
+        for path in quiet.locks:
+            _remove(path)
+        remaining = list(quiet.paused)
+        for attempt in range(UNPAUSE_TRIES if remaining else 0):
+            if attempt:
+                sleep(UNPAUSE_WAIT_S)
+            tronitor.unpause(remaining)
+            listing = tronitor.tests()
+            if listing is None:
+                continue
+            # A test missing from the list is not confirmed: right after
+            # Healthchecks starts, Tronitor can print an empty list and exit 0.
+            remaining = [name for name in remaining if name not in listing or listing[name][1].lower() == "paused"]
+            if not remaining:
+                break
+        for test_id in quiet.ids.values() if quiet.lock_dir else ():
+            _remove(os.path.join(quiet.lock_dir, f"{test_id}.lock"))
+        if remaining:
+            return [f"monitor unpause failed: {', '.join(remaining)}"]
+        return []
+
+
+    HOOK_TIMEOUT_S = 300
+
+
+    def run_hook(name, argv, extra, runner=subprocess.run):
+        """Run one hook without a shell. Return None, or a note if it failed.
+
+        The hook gets this process's environment, which holds no secrets (they
+        go only to restic), plus BACKUP_HOOK and the given extra values. Its
+        output is not captured: it goes to this run's output, the journal under
+        systemd. Nothing a hook does can raise out of here.
+        """
+        env = dict(os.environ, BACKUP_HOOK=name, **extra)
+        try:
+            result = runner(list(argv), env=env, timeout=HOOK_TIMEOUT_S, cwd="/")
+        except subprocess.TimeoutExpired:
+            return f"hook {name} failed: timed out"
+        except FileNotFoundError:
+            return f"hook {name} failed: not found"
+        except OSError as error:
+            return f"hook {name} failed: could not run ({type(error).__name__})"
+        except Exception as error:  # a hook must never break the backup
+            return f"hook {name} failed: {type(error).__name__}"
+        if result.returncode != 0:
+            return f"hook {name} failed: exit {result.returncode}"
+        return None
+
+
+    def _call_hook(hooks, hook, name, extra, notes):
+        argv = (hooks or {}).get(name)
+        if argv:
+            try:
+                note = hook(name, argv, extra)
+            except Exception as error:  # a hook must never break the backup
+                note = f"hook {name} failed: {type(error).__name__}"
+            if note:
+                notes.append(note)
+
+
+    @dataclass
+    class StackResult:
+        name: str
+        ok: bool = True
+        was_running: bool = False
+        downtime_s: float = 0.0
+        added_bytes: int = 0
+        paths: List[str] = field(default_factory=list)
+        skipped: List[str] = field(default_factory=list)
+        missing: List[str] = field(default_factory=list)
+        notes: List[str] = field(default_factory=list)
+        error: Optional[str] = None
+        still_stopped: bool = False
+
+
+    def _write_manifest(manifest_dir, project, containers):
+        if not os.path.isdir(manifest_dir):
+            # Only a folder the tool creates is limited to root; an existing
+            # folder keeps its mode (it might be shared, for example /tmp).
+            os.makedirs(manifest_dir, mode=0o700)
+            os.chmod(manifest_dir, 0o700)
+        path = os.path.join(manifest_dir, f"{project}.json")
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(manifest(project, containers), f, indent=2)
+        os.chmod(path, 0o600)
+        return path
+
+
+    def _data_added(stdout):
+        for line in reversed((stdout or "").splitlines()):
+            try:
+                message = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(message, dict) and message.get("message_type") == "summary":
+                return int(message.get("data_added") or 0)
+        return 0
+
+
+    def _last_line(text, fallback):
+        lines = (text or "").strip().splitlines()
+        return lines[-1] if lines else fallback
+
+
+    def back_up_stack(
+        project,
+        *,
+        server,
+        docker,
+        restic,
+        tronitor,
+        monitors,
+        seed,
+        timeout_s,
+        manifest_dir,
+        lock_dir,
+        clock=time.monotonic,
+        exists=os.path.exists,
+        sleep=time.sleep,
+        data_roots=("/home",),
+        hooks=None,
+        hook=run_hook,
+    ):
+        """Back up one stack: quiet its tests, stop it, run restic, start it again.
+
+        The start and the restore of the tests run even when restic fails or
+        times out, and on SIGTERM. A seed run neither stops the stack nor
+        touches its tests.
+        """
+        result = StackResult(project)
+        containers = docker.containers(project)
+        paths, result.skipped = select_paths(containers, data_roots)
+        result.paths, result.missing = existing_paths(paths, exists=exists)
+        manifest_path = _write_manifest(manifest_dir, project, containers)
+        services = running_services(containers)
+        result.was_running = bool(services)
+
+        quiet = Quiet()
+        quieted = False
+        stopped_at = None
+        try:
+            try:
+                if not seed:
+                    _call_hook(hooks, hook, "before_stop", {"BACKUP_STACK": project}, result.notes)
+                    if tronitor is not None and monitors:
+                        quieted = True
+                        quiet_monitors(monitors, tronitor, lock_dir, quiet)
+                        result.notes.extend(quiet.notes)
+                    if services:
+                        # Set before the stop: a stop that fails partway has
+                        # already stopped some containers, so start them again.
+                        stopped_at = clock()
+                        docker.stop(project, services)
+                tags = ["--tag", f"stack:{project}"] + (["--tag", "seed"] if seed else [])
+                args = ["backup", "--json", "--host", server] + tags + result.paths + [manifest_path]
+                returncode, stdout, stderr = restic.run(args, None if seed else timeout_s)
+                result.added_bytes = _data_added(stdout)
+                if returncode == 3:
+                    result.ok, result.error = False, "some files could not be read"
+                elif returncode != 0:
+                    result.ok, result.error = False, _last_line(stderr, f"restic exited with {returncode}")
+            except StepError as error:
+                result.ok, result.error = False, str(error)
+            except BaseException:
+                # SIGTERM or an unexpected error: after_start must not hear "ok".
+                result.ok, result.error = False, result.error or "interrupted"
+                raise
+            finally:
+                if stopped_at is not None:
+                    _start_again(project, services, containers, docker, result, sleep)
+                    result.downtime_s = clock() - stopped_at
+        finally:
+            if quieted:
+                result.notes.extend(restore_monitors(quiet, tronitor, sleep=sleep))
+            if not seed:
+                extra = {"BACKUP_STACK": project, "BACKUP_STACK_OK": "1" if result.ok else "0"}
+                _call_hook(hooks, hook, "after_start", extra, result.notes)
+        return result
+
+
+    def _start_again(project, services, containers, docker, result, sleep):
+        """Start the services that were running. Try compose 3 times, then docker start.
+
+        Compose waits for healthy dependencies, and a database that was just
+        stopped can be slow to report healthy, so one failed start is retried.
+        """
+        last = None
+        for attempt in range(START_TRIES):
+            if attempt:
+                sleep(START_WAIT_S)
+            try:
+                docker.start(project, services)
+                return
+            except StepError as error:
+                last = error
+        ids = [
+            c["Id"]
+            for c in containers
+            if (c.get("State") or {}).get("Status") == "running" and c.get("Id")
+        ]
+        try:
+            docker.start_ids(ids)
+            result.notes.append(f"started with docker start after: {last}")
+            return
+        except StepError:
+            pass
+        result.ok = False
+        result.still_stopped = True
+        first = f"{result.error}; " if result.error else ""
+        result.error = f"{first}STILL STOPPED: {last}"
+
+
+    @dataclass
+    class Report:
+        server: str
+        seed: bool = False
+        started: float = 0.0
+        finished: float = 0.0
+        stacks: List[StackResult] = field(default_factory=list)
+        unknown: List[str] = field(default_factory=list)
+        errors: List[str] = field(default_factory=list)
+        notes: List[str] = field(default_factory=list)
+        forget_error: Optional[str] = None
+        check_error: Optional[str] = None
+        seeds_removed: int = 0
+
+        @property
+        def ok(self):
+            return (
+                not self.errors
+                and not self.unknown
+                and self.forget_error is None
+                and self.check_error is None
+                and all(stack.ok for stack in self.stacks)
+            )
+
+
+    COLOR_OK = 39219
+    COLOR_FAILED = 16711680
+    DISCORD_LIMIT = 4000
+    USER_AGENT = "backup-stacks/1.0"
+    PING_TRIES = 10
+    NTFY_TRIES = 3
+    NTFY_WAIT_S = 10
+    PING_WAIT_S = 30
+    HTTP_TIMEOUT_S = 10
+
+
+    def human_size(n):
+        """1536 -> '1.5 KiB'."""
+        if n < 1024:
+            return f"{n} B"
+        for unit in ("KiB", "MiB", "GiB", "TiB"):
+            n /= 1024
+            if n < 1024 or unit == "TiB":
+                return f"{n:.1f} {unit}"
+
+
+    def _duration(seconds):
+        seconds = int(round(seconds))
+        return f"{seconds // 60}m {seconds % 60}s"
+
+
+    def format_report(report):
+        """The run's result as plain text: a title line, one line per stack, then details.
+
+        It holds stack names, paths and error messages, never a URL or secret.
+        """
+        title = f"Backup of {report.server} {'succeeded' if report.ok else 'FAILED'}"
+        lines = [title + (" (seed)" if report.seed else "")]
+        for s in report.stacks:
+            if not s.ok:
+                lines.append(f"{s.name}: FAILED, {s.error}")
+                continue
+            parts = ["ok"]
+            if s.downtime_s > 0:
+                parts.append(f"down {_duration(s.downtime_s)}")
+            elif not s.was_running:
+                parts.append("was not running")
+            parts.append(f"added {human_size(s.added_bytes)}")
+            lines.append(f"{s.name}: {', '.join(parts)}")
+        lines.append(f"Took {_duration(max(0.0, report.finished - report.started))}")
+        lines.extend(f"Error: {error}" for error in report.errors)
+        if report.unknown:
+            lines.append(f"Unknown stacks: {', '.join(report.unknown)}")
+        stopped = [s.name for s in report.stacks if s.still_stopped]
+        if stopped:
+            lines.append(f"Still stopped: {', '.join(stopped)}")
+        missing = [f"{s.name} {' '.join(s.missing)}" for s in report.stacks if s.missing]
+        if missing:
+            lines.append(f"Missing paths: {'; '.join(missing)}")
+        notes = [f"{s.name}: {note}" for s in report.stacks for note in s.notes] + report.notes
+        if notes:
+            lines.append(f"Notes: {'; '.join(notes)}")
+        if report.forget_error:
+            lines.append(f"restic forget: {report.forget_error}")
+        if report.check_error:
+            lines.append(f"restic check: {report.check_error}")
+        if report.seeds_removed:
+            lines.append(f"Seed snapshots removed: {report.seeds_removed}")
+        skipped = [f"{s.name}: {', '.join(s.skipped)}" for s in report.stacks if s.skipped]
+        if skipped:
+            lines.append(f"Skipped: {'; '.join(skipped)}")
+        return "\n".join(lines)
+
+
+    def discord_payload(report):
+        lines = format_report(report).splitlines()
+        description = "\n".join(lines[1:])
+        if len(description) > DISCORD_LIMIT:
+            description = description[: DISCORD_LIMIT - 1] + "…"
+        return {
+            "embeds": [
+                {"title": lines[0], "description": description, "color": COLOR_OK if report.ok else COLOR_FAILED}
+            ]
+        }
+
+
+    def real_post(url, body, headers, timeout):
+        """POST body to url. Return the HTTP status."""
+        import urllib.error
+        import urllib.request
+
+        request = urllib.request.Request(url, data=body, headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return response.status
+        except urllib.error.HTTPError as error:
+            return error.code
+
+
+    def _ok(status):
+        return isinstance(status, int) and 200 <= status < 300
+
+
+    class Notify:
+        """Sends the report to each channel that has a URL: Discord, ntfy, Healthchecks.io.
+
+        Nothing here can change the result of a run: every error is printed with
+        the HTTP status or the error type only, never a URL or token, and then
+        ignored.
+        """
+
+        def __init__(
+            self, discord_url=None, ping_url=None, ntfy_url=None, ntfy_token=None, post=real_post, sleep=time.sleep
+        ):
+            self.discord_url = discord_url or None
+            self.ping_url = ping_url.rstrip("/") if ping_url else None
+            self.ntfy_url = ntfy_url or None
+            self.ntfy_token = ntfy_token or None
+            self.post = post
+            self.sleep = sleep
+
+        def _send(self, url, body, headers):
+            try:
+                return self.post(url, body, dict(headers, **{"User-Agent": USER_AGENT}), HTTP_TIMEOUT_S)
+            except Exception as error:  # the network must never break the run
+                return type(error).__name__
+
+        def _send_with_retries(self, url, body, headers, tries, wait):
+            status = None
+            for attempt in range(tries):
+                if attempt:
+                    self.sleep(wait)
+                status = self._send(url, body, headers)
+                if _ok(status):
+                    return status
+            return status
+
+        def start(self):
+            if not self.ping_url:
+                return
+            status = self._send(self.ping_url + "/start", b"", {})
+            if not _ok(status):
+                print(f"could not reach Healthchecks.io for the start ping ({status})")
+
+        def finish(self, report):
+            text = format_report(report)
+            if self.discord_url:
+                body = json.dumps(discord_payload(report)).encode("utf-8")
+                status = self._send(self.discord_url, body, {"Content-Type": "application/json"})
+                if not _ok(status):
+                    print(f"could not reach Discord ({status})")
+            if self.ntfy_url:
+                title, _, rest = text.partition("\n")
+                headers = {
+                    "Content-Type": "text/plain; charset=utf-8",
+                    "Title": title,
+                    "Priority": "default" if report.ok else "high",
+                    "Tags": "white_check_mark" if report.ok else "warning",
+                }
+                if self.ntfy_token:
+                    headers["Authorization"] = f"Bearer {self.ntfy_token}"
+                status = self._send_with_retries(self.ntfy_url, (rest or title).encode("utf-8"), headers, NTFY_TRIES, NTFY_WAIT_S)
+                if not _ok(status):
+                    print(f"could not reach ntfy ({status})")
+            if self.ping_url:
+                url = self.ping_url if report.ok else self.ping_url + "/fail"
+                headers = {"Content-Type": "text/plain; charset=utf-8"}
+                status = self._send_with_retries(url, text.encode("utf-8"), headers, PING_TRIES, PING_WAIT_S)
+                if not _ok(status):
+                    print(f"could not reach Healthchecks.io ({status})")
+
+
+    def take_lock(path):
+        """Return an open file holding an exclusive lock on path, or None if taken."""
+        import fcntl
+
+        handle = open(path, "a+")
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            handle.close()
+            return None
+        return handle
+
+
+    MOUNT_CHECK = 'mountpoint -q "$1" && touch "$1/.backup-stacks-probe" && rm -f "$1/.backup-stacks-probe"'
+
+
+    def real_mount_ok(path, runner=subprocess.run):
+        """True if path is a mount point where a test file can be written.
+
+        The check runs in a child process under `timeout`, because even a look
+        at a hung NFS mount can block, and a check that blocks would hold the run.
+        """
+        try:
+            result = runner(["timeout", "30", "sh", "-c", MOUNT_CHECK, "sh", path], capture_output=True, timeout=40)
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        return result.returncode == 0
+
+
+    def _seed_ids(restic, server, stack):
+        returncode, stdout, _err = restic.run(
+            ["snapshots", "--json", "--host", server, "--tag", f"stack:{stack},seed"], DOCKER_TIMEOUT_S
+        )
+        if returncode != 0:
+            return []
+        try:
+            return [snap["id"] for snap in json.loads(stdout or "[]") if snap.get("id")]
+        except (ValueError, TypeError, AttributeError):
+            return []
+
+
+    def config_name_notes(settings, present):
+        """One note per config setting that names a stack the server does not have.
+
+        A typing mistake in exclude would otherwise stop that stack every week.
+        It is a note, not an error: a stack can be gone for a while on purpose.
+        """
+        if not present:
+            return []
+        monitors = (settings.get("tronitor") or {}).get("monitors") or {}
+        notes = []
+        for label, wanted in (
+            ("exclude", settings.get("exclude") or []),
+            ("last", settings.get("last") or []),
+            ("tronitor.monitors", list(monitors)),
+        ):
+            missing = [name for name in wanted if name not in present]
+            if missing:
+                notes.append(f"{label} names no stack: {', '.join(missing)}")
+        return notes
+
+
+    def run(
+        server,
+        stacks,
+        *,
+        seed,
+        settings,
+        docker,
+        restic,
+        tronitor,
+        notify,
+        manifest_dir,
+        lock_path="/run/backup-stacks.lock",
+        take_lock=take_lock,
+        mount_ok=real_mount_ok,
+        exists=os.path.exists,
+        now=time.time,
+        hook=run_hook,
+    ):
+        """Back up the stacks of one server and report. Return (exit_code, report).
+
+        stacks is a list of project names, or None for every project.
+        Exit codes: 0 all good, 1 something failed, 2 nothing was touched.
+        """
+        report = Report(server, seed=seed, started=now())
+        host = settings.get("host") or server
+        monitors = (settings.get("tronitor") or {}).get("monitors") or {}
+        lock_dir = (settings.get("tronitor") or {}).get("lock_dir")
+        holder = take_lock(lock_path)
+        if holder is None:
+            report.errors.append("another run is active")
+            return 2, report
+        try:
+            mount = settings.get("require_mount")
+            if mount and not mount_ok(mount):
+                report.errors.append(f"{mount} is not mounted or not writable")
+                report.finished = now()
+                notify.finish(report)
+                return 2, report
+
+            hooks = settings.get("hooks") or {}
+            after_run_done = []
+            finished = []
+
+            def after_run():
+                if not after_run_done:
+                    after_run_done.append(True)
+                    ok = "1" if report.ok and finished else "0"
+                    _call_hook(hooks, hook, "after_run", {"BACKUP_RUN_OK": ok}, report.notes)
+
+            try:
+                _call_hook(hooks, hook, "before_run", {}, report.notes)
+                notify.start()
+                returncode, _out, err = restic.run(["unlock"], DOCKER_TIMEOUT_S)
+                if returncode != 0:
+                    report.notes.append(f"restic unlock failed: {_last_line(err, 'no message')}")
+
+                try:
+                    present = docker.projects()
+                except StepError as error:
+                    report.errors.append(f"could not list stacks: {error}")
+                    present = []
+                if stacks is None:
+                    names = [name for name in present if name not in (settings.get("exclude") or [])]
+                else:
+                    report.unknown = sorted(set(stacks) - set(present))
+                    names = [name for name in stacks if name in present]
+                report.notes.extend(config_name_notes(settings, present))
+
+                target_dead = False
+                for name in order_stacks(names, settings.get("last") or []):
+                    # Once the backup target stops answering, stop no more stacks:
+                    # each would wait out the time limit while it is down.
+                    if not target_dead and mount and not mount_ok(mount):
+                        target_dead = True
+                    if target_dead:
+                        report.stacks.append(StackResult(name, ok=False, error=DEAD_TARGET))
+                        continue
+                    try:
+                        result = back_up_stack(
+                            name,
+                            server=host,
+                            docker=docker,
+                            restic=restic,
+                            tronitor=tronitor,
+                            monitors=monitors.get(name, []),
+                            seed=seed,
+                            timeout_s=int(settings.get("timeout_minutes") or 60) * 60,
+                            manifest_dir=manifest_dir,
+                            lock_dir=lock_dir,
+                            data_roots=settings.get("data_roots") or ["/home"],
+                            hooks=hooks,
+                            hook=hook,
+                            exists=exists,
+                        )
+                    except StepError as error:
+                        result = StackResult(name, ok=False, error=str(error))
+                    except OSError as error:
+                        # The text of an OSError names a path, which can hold a
+                        # test ID; report the reason only.
+                        reason = error.strerror or "error"
+                        result = StackResult(name, ok=False, error=f"unexpected {type(error).__name__}: {reason}")
+                    except Exception as error:  # one broken stack must not stop the others
+                        result = StackResult(name, ok=False, error=f"unexpected {type(error).__name__}: {error}")
+                    report.stacks.append(result)
+                    if (result.error or "").startswith("timed out"):
+                        target_dead = True
+
+                if not seed and target_dead:
+                    report.forget_error = "skipped: backup target not answering"
+                elif not seed:
+                    # A restic killed at its time limit leaves a lock that would
+                    # block forget and prune in this same run.
+                    restic.run(["unlock"], DOCKER_TIMEOUT_S)
+                    for result in report.stacks:
+                        if not result.ok:
+                            continue
+                        ids = _seed_ids(restic, host, result.name)
+                        if ids and restic.run(["forget"] + ids, DOCKER_TIMEOUT_S)[0] == 0:
+                            report.seeds_removed += len(ids)
+                    returncode, _out, err = restic.run(
+                        forget_args(host, settings.get("retention") or {"keep_weekly": 4}), None
+                    )
+                    if returncode != 0:
+                        report.forget_error = _last_line(err, f"restic forget exited with {returncode}")
+                    returncode, _out, err = restic.run(["check"], None)
+                    if returncode != 0:
+                        report.check_error = _last_line(err, f"restic check exited with {returncode}")
+                finished.append(True)
+            except SystemExit:
+                # systemctl stop, the unit's time limit or a shutdown. The stack
+                # that was down has been started by its own finally; report it.
+                report.errors.append("the run was stopped (SIGTERM)")
+                after_run()
+                report.finished = now()
+                notify.finish(report)
+                raise
+            finally:
+                after_run()
+            report.finished = now()
+            notify.finish(report)
+            return (0 if report.ok else 1), report
+        finally:
+            holder.close()
+
+
+    class RealParts:
+        """The real Docker, restic, Tronitor, Notify and secrets file.
+
+        main() takes another object with the same methods in tests.
+        """
+
+        config_dir = CONFIG_DIR
+
+        def docker(self):
+            return Docker()
+
+        def secrets(self, path):
+            return load_secrets(path)
+
+        def restic(self, secrets):
+            return Restic(restic_env(secrets))
+
+        def tronitor(self, config):
+            """None without a tronitor block in the config."""
+            return Tronitor(config["tronitor"]["path"]) if config.get("tronitor") else None
+
+        def notify(self, secrets):
+            return Notify(
+                discord_url=secrets.get("DISCORD_WEBHOOK_URL"),
+                ping_url=secrets.get("HC_PING_URL"),
+                ntfy_url=secrets.get("NTFY_URL"),
+                ntfy_token=secrets.get("NTFY_TOKEN"),
+            )
+
+        def take_lock(self, path):
+            return take_lock(path)
+
+        def mount_ok(self, path):
+            return real_mount_ok(path)
+
+        def exists(self, path):
+            return os.path.exists(path)
+
+        def run_restic(self, secrets, args):
+            """Run restic interactively with the secrets file, for init, snapshots and restores."""
+            env = restic_env(secrets)
+            if "RESTIC_PROGRESS_FPS" not in os.environ:
+                env.pop("RESTIC_PROGRESS_FPS", None)  # a person is watching: normal progress
+            return subprocess.run(["restic"] + list(args), env=env).returncode
+
+
+    def _terminate(signum, frame):
+        """SIGTERM from systemd: exit through the finally blocks, which start the stack again."""
+        raise SystemExit(143)
+
+
+    def dry_run(stacks, settings, docker, exists):
+        """Print what a run would do. Return 0, or 1 if a name is unknown or a stack cannot be read."""
+        code = 0
+        present = docker.projects()
+        excluded = [name for name in present if name in (settings.get("exclude") or [])] if stacks is None else []
+        names = [name for name in present if name not in excluded] if stacks is None else [name for name in stacks if name in present]
+        unknown = [] if stacks is None else sorted(set(stacks) - set(present))
+        ordered = order_stacks(names, settings.get("last") or [])
+        print(f"Order: {', '.join(ordered) or '-'}")
+        for note in config_name_notes(settings, present):
+            print(f"Note: {note}")
+        if excluded:
+            print(f"Excluded: {', '.join(excluded)}")
+        for name in ordered:
+            print(name)
+            try:
+                containers = docker.containers(name)
+            except StepError as error:
+                print(f"  error: {error}")
+                code = 1
+                continue
+            paths, skipped = select_paths(containers, settings.get("data_roots") or ["/home"])
+            present_paths, missing = existing_paths(paths, exists=exists)
+            print(f"  running: {', '.join(running_services(containers)) or '-'}")
+            print(f"  paths: {', '.join(present_paths) or '-'}")
+            print(f"  missing: {', '.join(missing) or '-'}")
+            print(f"  skipped: {', '.join(skipped) or '-'}")
+            monitors = ((settings.get("tronitor") or {}).get("monitors") or {}).get(name, [])
+            print(f"  monitors: {', '.join(monitors) or '-'}")
+        if unknown:
+            print(f"Unknown stacks: {', '.join(unknown)}")
+            code = 1
+        return code
+
+
+    def _parser():
+        parser = argparse.ArgumentParser(
+            prog="backup_stacks.py",
+            description="Back up the Compose stacks of one server with restic, one stopped stack at a time.",
+        )
+        parser.add_argument("server", nargs="?", metavar="NAME", help="the config /etc/backup-stacks/NAME.json")
+        parser.add_argument("--config", metavar="PATH", help="a config file elsewhere, instead of NAME")
+        parser.add_argument("stacks", nargs="*", metavar="STACK", help="Compose project names to back up")
+        parser.add_argument("--all", action="store_true", help="back up every Compose project on the server")
+        parser.add_argument(
+            "--seed", action="store_true", help="first snapshot without stopping the stacks (never for a restore)"
+        )
+        parser.add_argument(
+            "--dry-run", action="store_true", help="print what a run would do; stop nothing, run no restic"
+        )
+        parser.add_argument(
+            "--restic",
+            nargs=argparse.REMAINDER,
+            metavar="ARGS",
+            help="run restic ARGS with the secrets file, for example: --restic snapshots",
+        )
+        return parser
+
+
+    def _config_path(args, parts):
+        """Return (name, path, stacks) from NAME or --config.
+
+        With --config, the first word after the options is a stack name, not NAME.
+        """
+        stacks = list(args.stacks)
+        if args.config:
+            if args.server:
+                stacks.insert(0, args.server)
+            name = os.path.splitext(os.path.basename(args.config))[0]
+            return name, args.config, stacks
+        if not args.server:
+            raise UsageError("give a config NAME or --config PATH")
+        if not NAME.fullmatch(args.server):
+            raise UsageError("give one config name of letters, digits, - and _")
+        return args.server, os.path.join(parts.config_dir, f"{args.server}.json"), stacks
+
+
+    def main(argv=None, parts=None):
+        argv = sys.argv[1:] if argv is None else argv
+        parser = _parser()
+        try:
+            args = parser.parse_args(argv)
+        except SystemExit as stop:
+            return stop.code if isinstance(stop.code, int) else 2
+        parts = parts or RealParts()
+        signal.signal(signal.SIGTERM, _terminate)
+        try:
+            name, path, names = _config_path(args, parts)
+            if args.restic is not None:
+                if args.all or names or args.seed or args.dry_run:
+                    raise UsageError("--restic cannot be combined with --all, stack names, --seed or --dry-run")
+                if not args.restic:
+                    raise UsageError("give restic arguments after --restic, for example: --restic snapshots")
+                config = load_config(path, name)
+                return parts.run_restic(parts.secrets(config["secrets_file"]), args.restic)
+            if args.all == bool(names):
+                raise UsageError("give --all or one or more stack names, not both")
+            bad = [stack for stack in names if not NAME.fullmatch(stack)]
+            if bad:
+                raise UsageError(f"not a stack name: {bad[0]}")
+            config = load_config(path, name)
+            stacks = None if args.all else names
+            if args.dry_run:
+                return dry_run(stacks, config, parts.docker(), parts.exists)
+            secrets = parts.secrets(config["secrets_file"])
+        except UsageError as error:
+            sys.stderr.write(parser.format_usage())
+            print(f"error: {error}", file=sys.stderr)
+            return 2
+        lock_dir = (config.get("tronitor") or {}).get("lock_dir")
+        if lock_dir:
+            os.makedirs(lock_dir, exist_ok=True)
+        code, report = run(
+            name,
+            stacks,
+            seed=args.seed,
+            settings=config,
+            docker=parts.docker(),
+            restic=parts.restic(secrets),
+            tronitor=parts.tronitor(config),
+            notify=parts.notify(secrets),
+            manifest_dir=config["manifest_dir"],
+            lock_path=config["lock_path"],
+            take_lock=parts.take_lock,
+            mount_ok=parts.mount_ok,
+            exists=parts.exists,
+        )
+        print(format_report(report))
+        return code
+
+
+    if __name__ == "__main__":
+        sys.exit(main())
+    ```
+
 ## The stack map and the pins
 
 `split_stacks.py` reads two files for each server. [Move the stacks](move-stacks.md#write-the-stack-map) explains each key of the map, and [Back up and record](backup.md#pin-the-images) explains how to write the pins.
@@ -1451,6 +2922,68 @@ Searches every tracked file and every commit of the repository for the real secr
       "radarr": "lscr.io/linuxserver/radarr:5.26.2.10099-ls276@sha256:<digest>",
       "uptime-kuma": "louislam/uptime-kuma:1@sha256:<digest>"
     }
+    ```
+
+## The backup config and units
+
+`backup_stacks.py` reads one config for each server. [Weekly backups](backups.md#the-config) explains each key, with Tronitor and hooks. This example backs up the stacks of `server-a` to an NFS share.
+??? example "tools/backup/server-a.json"
+
+    ```json
+    {
+      "host": "server-a",
+      "data_roots": ["/home"],
+      "require_mount": "/mnt/backup",
+      "last": ["komodo", "monitoring", "proxy"],
+      "timeout_minutes": 60,
+      "retention": {"keep_weekly": 4}
+    }
+    ```
+
+The service is the same for every server: `%i` is the name of the config. Its stop settings let the script start the stack that is down and send its report when the run is stopped.
+
+??? example "tools/systemd/backup-stacks@.service"
+
+    ```ini
+    [Unit]
+    Description=Weekly restic backup of the Compose stacks of %i (/etc/backup-stacks/%i.json)
+    Documentation=file:///usr/local/sbin/backup_stacks.py
+    Wants=network-online.target
+    After=network-online.target docker.service
+
+    [Service]
+    Type=oneshot
+    # restic keeps its cache in $HOME/.cache/restic. systemd sets no HOME for
+    # root units, and without the cache every run downloads the index again.
+    Environment=HOME=/root
+    # A catch-up run right after a boot waits until the server has been up for
+    # 10 minutes, so that the containers have finished starting.
+    ExecStartPre=/bin/sh -c 'up=$$(cut -d. -f1 /proc/uptime); if [ "$$up" -lt 600 ]; then sleep $$((600 - up)); fi'
+    ExecStart=/usr/bin/python3 -I /usr/local/sbin/backup_stacks.py %i --all
+    TimeoutStartSec=12h
+    # On stop, SIGTERM goes to Python only. It then starts the stack that is
+    # down, restores the tests and sends the report before systemd kills the rest.
+    KillMode=mixed
+    TimeoutStopSec=15min
+    Nice=10
+    IOSchedulingClass=idle
+    ```
+
+One timer for each server. It uses the server's time zone; to fix one, write it after the time, for example `03:00:00 Etc/UTC`.
+
+??? example "tools/systemd/backup-stacks-server-a.timer"
+
+    ```ini
+    [Unit]
+    Description=Weekly restic backup of the Compose stacks of server-a
+
+    [Timer]
+    OnCalendar=Sun *-*-* 03:00:00
+    Persistent=true
+    Unit=backup-stacks@server-a.service
+
+    [Install]
+    WantedBy=timers.target
     ```
 
 ## Configuration files
