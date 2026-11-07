@@ -126,6 +126,7 @@ nav:
       - labs/docker-updates/webhooks.md
       - labs/docker-updates/renovate.md
       - labs/docker-updates/daily-use.md
+      - labs/docker-updates/backups.md
       - labs/docker-updates/lessons.md
       - labs/docker-updates/scripts.md
   - GITOPS LAB:
