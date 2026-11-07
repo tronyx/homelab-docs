@@ -45,7 +45,8 @@ plugins:
       type: datetime # or datetime, iso_date, iso_datetime, timeago
       timezone: America/New_York
       locale: en
-  - git-authors
+  - git-authors:
+      href: "https://github.com/{name}"
   - mkdocs-video
   - open-in-new-tab:
       add_icon: true
