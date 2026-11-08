@@ -77,7 +77,7 @@ The diagram shows the client devices by type and count only. The LAN has 1 PC, 2
 
 The table holds only private addresses inside the lab. The Cloud Server is outside the lab and is not in it. Select the bar to open the table.
 
-??? info "Show all 32 addresses"
+??? info "Show the address table"
 
     | Device | Host name | Address |
     | --- | --- | --- |
@@ -98,7 +98,7 @@ The table holds only private addresses inside the lab. The Cloud Server is outsi
     | APC Network Management Card | `apc-nmc` | 192.168.1.81 |
     | Suladan (VM on Bolg) | `suladan` | 192.168.1.103 |
     | Gothmog | `gothmog` | 192.168.1.104 |
-    | GitOps Lab VMs on Sauron | See [GitOps Lab](../gitops.md) | 192.168.1.34, 192.168.1.200 to 192.168.1.208 |
+    | GitOps Lab VMs on Sauron | See [GitOps Lab](../gitops.md) | 192.168.1.34, 192.168.1.200 to 192.168.1.206, 192.168.1.208 |
     | Front camera | `yocum-uvc-01` | 172.27.1.2 |
     | Side camera | `yocum-uvc-02` | 172.27.1.3 |
     | Backyard camera | `yocum-uvc-03` | 172.27.1.4 |
