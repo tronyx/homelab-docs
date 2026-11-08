@@ -17,7 +17,7 @@ Bolg is the primary ESXi server. It runs ESXi 8.0.3.
 - Memory: 128 GB DDR4-2933 ECC
 - RAID: PERC H730 RAID controller with a 1 GB flash module
 - Disks: 10x 960 GB Samsung SM863 enterprise SSDs in RAID 10
-- Network: dual SFP+ 10 Gb NIC, and a 1 Gb NIC as management standby
+- Network: dual SFP+ 10 Gb NIC (10Gtek X520-10G-2S), and a 1 Gb NIC as management standby
 
 Bolg runs four VMs:
 
@@ -36,7 +36,7 @@ Sauron is the backup ESXi server. It runs ESXi 8.0.0.
 - Memory: 128 GB DDR4-2133 ECC
 - RAID: PERC H730 RAID controller with a 1 GB flash module
 - Disks: 10x 960 GB Samsung SM863 enterprise SSDs in RAID 10
-- Network: dual SFP+ 10 Gb NIC, and a 1 Gb NIC as management standby
+- Network: dual SFP+ 10 Gb NIC (10Gtek X520-10G-2S), and a 1 Gb NIC as management standby
 
 Sauron runs the VMs of the [GitOps Production-like Lab](../gitops.md). These VMs run only while I work on that lab.
 
