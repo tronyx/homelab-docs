@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 
 {% block announce %}
-    <!-- Add your announcement content here, including arbitrary HTML -->
-    <p>Important: This is a new announcement!</p>
+    <!-- One line shows per visit: assets/javascripts/banner.js picks it at random.
+         Without JavaScript, the first line shows (extra.css). Keep every line here, and
+         never let a script change this HTML: the dismiss button (announce.dismiss)
+         remembers a closed banner by a hash of this HTML. -->
+    <p class="banner-quips">
+      <span>Welcome to my homelab adventure. It started with one old PC in a basement, and it is still growing.</span>
+      <span>Welcome to the lab. Mind the cables, and please do not unplug anything.</span>
+      <span>Welcome to my homelab adventure, where every fix starts with "it worked yesterday."</span>
+      <span>Welcome aboard. This lab runs on curiosity, coffee and a 45U rack.</span>
+      <span>Welcome to my homelab, where the uptime is high and the power bill is higher.</span>
+      <span>Welcome in. Every rack starts with one server and the words "just one more."</span>
+      <span>Welcome to the lab, where "it's always DNS" is not a joke.</span>
+      <span>Welcome to my homelab adventure. No servers were harmed in the making of this site. Most of them, anyway.</span>
+      <span>Welcome aboard. The blinking lights mean it is working. Probably.</span>
+      <span>Welcome to the basement data center. Please keep your hands inside the rack at all times.</span>
+    </p>
 {% endblock %}

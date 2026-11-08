@@ -58,6 +58,8 @@ plugins:
   - search
 extra_css:
   - overrides/assets/stylesheets/extra.css
+extra_javascript:
+  - overrides/assets/javascripts/banner.js
 theme:
   name: material
   logo: overrides/assets/images/icons/icon.png

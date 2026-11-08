@@ -22,6 +22,10 @@
 	overflow: auto;
 	text-align: center;
 }
+/* Banner lines: without JavaScript, only the first shows (banner.js picks one per visit) */
+.banner-quips > span + span {
+	display: none;
+}
 
 /* Adjust logo container padding/margin if needed */
 .md-header__button.md-logo {

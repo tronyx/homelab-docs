@@ -46,6 +46,7 @@ The diagram draws each cable as one striped ribbon, with one colored stripe per 
 | --- | --- | --- | --- | --- |
 | Hitron CODA56 | UXG-Fiber | Not recorded | Not recorded | None |
 | UXG-Fiber | Aggregation switch | SFP+ | 10 Gb | LAN, Cameras, IoT, Management |
+| Office PC | UXG-Fiber | Direct, through the patch panel | 2.5 Gb | LAN |
 | USW-48 | Aggregation switch | 2x SFP+ (LAG) | 2x 10 Gb | LAN, Cameras, IoT, Management |
 | Unifi NVR | Aggregation switch | SFP+ | 10 Gb | Management |
 | Morgoth | Aggregation switch | Fiber | 10 Gb | LAN |
