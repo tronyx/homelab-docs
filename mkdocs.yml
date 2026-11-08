@@ -139,5 +139,3 @@ nav:
       - labs/docker-updates/scripts.md
   - GITOPS LAB:
     - labs/gitops.md
-  - INFRASTRUCTURE:
-    - infra/index.md
