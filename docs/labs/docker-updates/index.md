@@ -1,17 +1,17 @@
 ---
 title: Automated Docker updates
-description: Reviewed Docker image updates with Forgejo, Renovate and Komodo, starting from one large compose file.
+description: Reviewed Docker image updates with Forgejo, Renovate and Komodo. The setup starts from one large compose file.
 ---
 
 # Automated Docker updates
 
 ![A hand-drawn notebook page: image registries, the Renovate bot, a pull request, you reviewing it, Komodo deploying to server-a and server-b](../../overrides/assets/images/docker-updates/header.svg)
 
-Somewhere on your server lives a `docker-compose.yml` that started small. Today it is hundreds of lines long. Half of the services run, a few are commented out "for now", one has a name that nobody remembers, and the image tags say `latest` in the hope that it all still works after the next pull. You would like to make sense of it all, see every update before it lands, and get back to a known state when an update goes wrong.
+Somewhere on your server lives a `docker-compose.yml` that started small. Today it is hundreds of lines long. Half of the services run, and a few are commented out "for now". One has a name that nobody remembers. The image tags say `latest`, in the hope that it all still works after the next pull. You want to make sense of it all and see every update before it lands. When an update goes wrong, you want to get back to a known state.
 
 This guide turns that file into a GitOps setup. GitOps means that a Git repository describes what runs, and every change goes through a reviewed commit. At the end, you have this loop:
 
-1. Renovate runs every day in Forgejo Actions and checks the image registries for new versions.
+1. Renovate runs every day in Forgejo Actions and looks in the image registries for new versions.
 2. For each new version, Renovate opens a pull request in Forgejo, one for each stack. A stack is a small group of containers in one compose file.
 3. You review the pull request and merge it.
 4. The merge sends a webhook to Komodo. A Komodo Procedure deploys only the stacks that changed.
@@ -53,10 +53,10 @@ The example uses SWAG. With another reverse proxy, such as Traefik, Caddy or Ngi
 4. Deny every other path and address.
 5. Send all of it to Core on `<server-a-lan-ip>:9120`.
 
-The proxy must also look up container names at each request, not only when it starts, or a route breaks after a stack moves (see [Lessons learned](lessons.md#a-route-returns-502-after-a-move)).
+The proxy must also look up container names at each request, not only when it starts. If it does not, a route breaks after a stack moves (see [Lessons learned](lessons.md#a-route-returns-502-after-a-move)).
 
 !!! warning "Komodo Core on a host with a public address"
-    The Komodo compose file publishes port `9120` on every address of the host. At home behind a router, that port stays on the LAN. On a VPS or any host with a public address, bind it to a private address (`<server-a-lan-ip>:9120:9120`) or block it in the firewall, or the web interface is on the internet over plain HTTP.
+    The Komodo compose file publishes port `9120` on every address of the host. At home behind a router, that port stays on the LAN. On a VPS or any host with a public address, bind it to a private address (`<server-a-lan-ip>:9120:9120`) or block it in the firewall. If you do not, the web interface is on the internet over plain HTTP.
 
 ## How to read the commands
 

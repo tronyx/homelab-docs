@@ -14,11 +14,11 @@ This part makes sure that each server has the tools, and it creates the Git repo
 - A Forgejo instance that you can reach from every server, with Forgejo Actions turned on.
 - A Forgejo runner with the label `docker` that can run job containers, for example the runner image with a Docker-in-Docker service next to it. The [Renovate](renovate.md) part uses it.
 - A reverse proxy with HTTPS in front of Forgejo. The example uses SWAG.
-- A host name for Komodo, `<komodo-host>`, if a second server or Forgejo must reach Komodo from outside your LAN (see [Adapt to your layout](index.md#adapt-to-your-layout)). It needs a public DNS record that points to `<server-a-public-ip>`, port 443 forwarded on your router to the proxy on `server-a`, and a certificate that covers the name. With SWAG, add the name to `SUBDOMAINS` or use a wildcard certificate.
+- A host name for Komodo, `<komodo-host>`, if a second server or Forgejo must reach Komodo from outside your LAN (see [Adapt to your layout](index.md#adapt-to-your-layout)). It needs a public DNS record that points to `<server-a-public-ip>`, and a certificate that covers the name. Your router must also forward port 443 to the proxy on `server-a`. With SWAG, add the name to `SUBDOMAINS` or use a wildcard certificate.
 - A Docker Hub account with a read-only access token (permission `Public Repo Read-only`). Komodo and the hosts use it, because Docker Hub limits anonymous pulls.
 - A computer with Git and an SSH key that Forgejo knows. The guide calls it your PC. To test changes to the Renovate rules on the PC, Node.js with `npx` is also useful.
 
-This setup was built and tested with these versions. Newer versions are likely to work, but read the release notes of each one.
+I built and tested this setup with these versions. Newer versions are likely to work, but read the release notes of each one.
 
 | Software | Version |
 | --- | --- |
@@ -84,9 +84,9 @@ When the guide is done, the repository has this layout. The [Scripts](scripts.md
     └── stacks/server-a.json                  # the stack map of each server
 ```
 
-You write the pins in [Back up and record](backup.md) and the stack maps in [Move the stacks](move-stacks.md), both in the server's clone, and commit them from there. The folders `server-a/` and `server-b/` stay empty until you move the stacks.
+You write the pins in [Back up and record](backup.md) and the stack maps in [Move the stacks](move-stacks.md), both in the server's clone. You commit them from there. The folders `server-a/` and `server-b/` stay empty until you move the stacks.
 
-1. Make a folder on your PC, and copy into it the files from the [Scripts](scripts.md) page: the six scripts in `tools/`, `.gitignore`, and the Komodo files.
+1. Make a folder on your PC. Copy into it the files from the [Scripts](scripts.md) page: the six scripts in `tools/`, `.gitignore`, and the Komodo files.
 2. Replace the placeholders in the Komodo files with your values: `<komodo-host>`, `<lan-subnet>`, `<server-a-lan-ip>` and `<server-b-public-ip>`. Also set `TZ` to your time zone. Commit no placeholder.
 3. Start a local repository on the branch `main`:
 
@@ -150,7 +150,7 @@ Do these steps on each server. The examples use `server-a`.
     ssh -T git@<forgejo-host>
     ```
 
-    SSH shows the fingerprint of the host key and asks you to accept it. Before you answer `yes`, compare it with the real one: on the host that runs Forgejo's SSH, `ssh-keygen -lf` with the public host key file shows it. If they do not match, answer `no` and find out why. The reply must then say that you authenticated.
+    SSH shows the fingerprint of the host key and asks you to accept it. Before you answer `yes`, compare it with the real one. On the host that runs Forgejo's SSH, `ssh-keygen -lf` with the public host key file shows it. If they do not match, answer `no` and find out why. The reply must then say that you authenticated.
 
 !!! tip "Read-only after the move"
     When every stack runs from Komodo, the servers only pull. Then delete each deploy key and add it again without write access. A read-only key cannot change the repository, even if a server is broken into.

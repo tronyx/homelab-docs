@@ -46,7 +46,7 @@ A merge for a critical stack deploys nothing until you click Deploy. If you forg
     cd /root/<your-repo> && git pull && python3 -I tools/check_images.py server-a
     ```
 
-2. Read the output. If all containers run the image from the repo, it shows one line with two equal numbers, for example `12 of 12 containers run the image from the repo`, and its exit code is 0.
+2. Read the output. If all containers run the image from the repo, the output is one line with two equal numbers, for example `12 of 12 containers run the image from the repo`. The exit code is then 0.
 3. If a line starts with `DIFFERENT`, click Deploy on that Stack. The two lines below it show the image in the repo and the image that runs.
 4. If a line starts with `MISSING` or `NOT RUNNING`, open the Stack in Komodo and read the log of the container.
 5. If a line starts with `NOT IN ANY FILE`, a container exists that no file describes. Find out who started it, and add it to a stack file or remove it.
@@ -86,6 +86,6 @@ On its next run, Renovate opens the same update again, because `main` has the ol
 ## Keep it healthy
 
 - After a reboot or a Docker update, follow [Reboots and Docker updates](critical-stacks.md#reboots-and-docker-updates).
-- A database major upgrade is never a Renovate merge. Plan it: dump the database with `pg_dumpall` or `mariadb-dump`, restore the dump into a temporary container on a new data folder, compare the table and row counts of both, and only then change the stack file to the new image and folder. Keep the old folder as the rollback.
-- A new major version of Forgejo is a Renovate pull request for a critical stack. Read the breaking changes in its release notes first. Then, before the Deploy: run `forgejo manager flush-queues` as the user `git` in the container, stop `forgejo` (not its database), dump the database and copy the data folder, and start `forgejo` again, because the Deploy pulls from it. Click Deploy: Forgejo runs its database migrations at the first start. Run `forgejo doctor check --all` as the user `git`. After the migrations, an older Forgejo does not start on that database, so the way back is a restore of both backups, not a revert.
+- A database major upgrade is never a Renovate merge. Plan it. Dump the database with `pg_dumpall` or `mariadb-dump`, and restore the dump into a temporary container on a new data folder. Compare the table and row counts of both. Only then, change the stack file to the new image and folder. Keep the old folder as the rollback.
+- A new major version of Forgejo is a Renovate pull request for a critical stack. Read the breaking changes in its release notes first. Then, before the Deploy, run `forgejo manager flush-queues` as the user `git` in the container. Stop `forgejo` (not its database), dump the database and copy the data folder. Start `forgejo` again, because the Deploy pulls from it. Click Deploy: Forgejo runs its database migrations at the first start. Run `forgejo doctor check --all` as the user `git`. After the migrations, an older Forgejo does not start on that database, so the way back is a restore of both backups, not a revert.
 - Look at the Dependency Dashboard from time to time. It lists the pending updates and any image that Renovate failed to look up. Updates that a rule turns off, such as database majors, do not appear there, so watch the release notes of your databases yourself.

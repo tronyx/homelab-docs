@@ -13,7 +13,7 @@ The rack has 45 units (45U). U1 is at the bottom. The table lists the front from
 
 | Units | Equipment |
 | --- | --- |
-| U45 | Old Unifi USG-4P, powered off. It will be removed and replaced by a blank panel. |
+| U45 | Old Unifi USG-4P, powered off. I will remove it and put a blank panel in its place. |
 | U44 | 24-port CAT6 patch panel |
 | U43 | Cable hide |
 | U42 | USW-48 |

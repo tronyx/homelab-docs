@@ -35,7 +35,7 @@ The Procedure pulls the Repo itself before it compares, so after a merge you do 
 Only the two Procedures accept webhooks. Everything else that can deploy without a pull request is off:
 
 - On each Stack and each Repo, turn off the webhook, and on each Stack also Auto Update and Poll For Updates. Click Save.
-- Komodo creates three Procedures of its own. Keep Backup Core Database and Rotate Server Keys on. Turn off the schedule of Global Auto Update, because it updates every Stack that has Auto Update or Poll For Updates on, without a pull request.
+- Komodo creates three Procedures of its own. Keep Backup Core Database and Rotate Server Keys on. Turn off the schedule of Global Auto Update. It updates every Stack that has Auto Update or Poll For Updates on, without a pull request.
 
 ## Create the webhooks in Forgejo
 
@@ -57,7 +57,7 @@ Komodo uses its `github` listener for Forgejo, because Forgejo signs each call i
 
 | Change on `main` | Result |
 | --- | --- |
-| A stack in a Procedure changed | Komodo deploys that stack. Compose recreates only the services whose settings changed. A change to a comment restarts nothing. |
+| A stack in a Procedure changed | Komodo deploys that stack. Compose recreates only the services whose configuration changed. A change to a comment restarts nothing. |
 | Stacks on both servers changed | Each Procedure deploys the changed stacks of its own server. |
 | A critical stack changed | Nothing deploys. Komodo shows the stack as changed. Review the change, then click Deploy on the Stack. |
 | No stack changed | Nothing deploys. |
@@ -82,4 +82,4 @@ A push to any other branch does nothing. The branch filter in Forgejo stops the 
 Also test the other cases once: a comment in a critical stack deploys nothing, and a push to another branch starts no delivery.
 
 !!! note "Many stacks in one Repo"
-    A Komodo issue, [moghtech/komodo#769](https://github.com/moghtech/komodo/issues/769), reports that batch actions can fail with `Missing compose file` when many stacks share one Repo. The reports are about 10 to 50 or more stacks. If a run shows this error, deploy the stacks one at a time, and look at the issue before you add more stacks to the Procedure.
+    A Komodo issue, [moghtech/komodo#769](https://github.com/moghtech/komodo/issues/769), reports that batch actions can fail with `Missing compose file` when many stacks share one Repo. The reports are about 10 to 50 or more stacks. If a run shows this error, deploy the stacks one at a time. Read the issue before you add more stacks to the Procedure.

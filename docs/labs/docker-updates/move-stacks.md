@@ -5,7 +5,7 @@ description: Split the large compose file into stacks with split_stacks.py and m
 
 # Move the stacks
 
-This part splits the large compose file into one folder per stack and moves the stacks into Komodo, one at a time. Each move proves that the containers kept their images and their environment. On the server that runs Forgejo, the proxy and Forgejo wait for the [next part](critical-stacks.md). A critical stack on another server, such as the proxy on `server-a`, moves with the steps on this page, but it stays out of the Procedures later.
+This part splits the large compose file into one folder per stack and moves the stacks into Komodo, one at a time. Each move proves that the containers kept their images and their environment. On the server that runs Forgejo, the proxy and Forgejo wait for the [next part](critical-stacks.md). A critical stack on another server, such as the proxy on `server-a`, moves with the steps on this page. But it stays out of the Procedures later.
 
 In Komodo, a Stack is the resource for one compose file. Its name has the server as a prefix, such as `server-a-media`, because a stack name such as `proxy` or `monitoring` can exist on both servers. Its project name in Docker is the stack name alone, such as `media`.
 
@@ -43,10 +43,10 @@ git add tools/stacks/server-a.json && git commit -m "Add the stack map of server
 | `scan_exempt_keys` | Secret keys whose value also appears as normal text, such as a database user named like its service. The leak scan skips them. Usernames are the usual case. |
 | `plain_env` | Values that are not secret but that the files use as `${VARIABLES}`, such as `TZ`. |
 | `network` | The shared Docker network. `key` is the name under `networks:` in your services, and `name` is the real network name, which you see with `docker network ls`. A project in `/home` names it `home_<key>`. |
-| `komodo_files` | The compose files outside the stack folders whose containers run on this server, so that `check_images.py` checks them too. On `server-b`, it is `["komodo/periphery-server-b/docker-compose.yml"]`. |
+| `komodo_files` | The compose files outside the stack folders whose containers run on this server, so that `check_images.py` compares them too. On `server-b`, it is `["komodo/periphery-server-b/docker-compose.yml"]`. |
 
 !!! tip "Group by what restarts together"
-    Put an application and its database and cache in the same stack. A Deploy recreates only the services whose settings changed, so a bigger stack does not mean more restarts.
+    Put an application and its database and cache in the same stack. A Deploy recreates only the services whose configuration changed, so a bigger stack does not mean more restarts.
 
 ## Prepare Komodo
 
@@ -226,7 +226,7 @@ The application is down from step 3 until the Deploy finishes.
 
 ## If the deploy fails
 
-A failed move goes back to the old project. Use the pinned stack file for this, not the old large file: some old tags point to newer images by now, so the old file can change an image.
+A failed move goes back to the old project. Use the pinned stack file for this, not the old large file. Some old tags point to newer images by now, so the old file can change an image.
 
 1. In Komodo, click Destroy on the Stack. Destroy runs `docker compose down` for the stack: it stops and removes its containers. The data in the bind mounts stays.
 2. Put back the large compose file:
@@ -257,7 +257,7 @@ A failed move goes back to the old project. Use the pinned stack file for this, 
 
 ## The other stacks
 
-Move the remaining normal stacks the same way, one at a time, starting at "Generate the stack files". You can stop between any two stacks. Stop at the first result that you do not expect.
+Move the remaining normal stacks the same way, one at a time. Start each one at "Generate the stack files". You can stop between any two stacks. Stop at the first result that you do not expect.
 
 - A stack that moved shows as `already migrated and kept` in the output of the split. The two numbers add up to the number of stacks in the map.
 - For `server-b`, use `--server server-b`, `/root/secrets-server-b.env`, the folder `server-b/`, the Stack names `server-b-<stack>`, and a second Repo `<your-repo>-server-b` with the Server `server-b`.
@@ -271,9 +271,9 @@ Move the remaining normal stacks the same way, one at a time, starting at "Gener
 - Keep the secrets file until no more moves or rollbacks are planned. The rollback steps above read it, and so does `--print-env`.
 
 ??? note "Add services to a stack that moved already"
-    Add the new services to the stack in the map, and add their pins to `tools/pins/server-a.json`. If the tool wrote a folder for them before as a stack of their own, delete that uncommitted folder. Then generate the stack files again. The tool adds the new services to the existing stack file and leaves its other lines as they are, so `git diff --numstat server-a/media` shows `0` removed lines. Create Variables only for the new secrets, replace the whole Environment of the Stack with the new `--print-env` text, and move only the new containers. If that Deploy fails, do not click Destroy, because Destroy removes the whole stack. Remove only the new containers and start them in the old project with the rollback steps above, naming the services at the end of the `docker compose up -d` command.
+    Add the new services to the stack in the map, and add their pins to `tools/pins/server-a.json`. If the tool wrote a folder for them before as a stack of their own, delete that uncommitted folder. Then generate the stack files again. The tool adds the new services to the existing stack file and leaves its other lines as they are. So `git diff --numstat server-a/media` shows `0` removed lines. Create Variables only for the new secrets, replace the whole Environment of the Stack with the new `--print-env` text, and move only the new containers. If that Deploy fails, do not click Destroy, because Destroy removes the whole stack. Remove only the new containers, and start them in the old project with the rollback steps above. Name the services at the end of the `docker compose up -d` command.
 
 ??? note "Make a key secret after its stack moved"
-    Add the key to `secret_keys`, push the map, and generate the stack files again. After the large file is retired, use `--compose /home/docker-compose.yml.retired`. The tool also extracts secrets in the files of stacks that moved: it changes only the lines of the new key, adds the value to the secrets file, and ends its output with `, 1 of them with new secrets`. Commit the stack file, Pull the Repo in Komodo, create the new secret Variable, replace the Environment of the Stack with the new `--print-env` text, and Deploy. The image IDs and environment hashes must not change, because the value did not change.
+    Add the key to `secret_keys`, push the map, and generate the stack files again. After the large file is retired, use `--compose /home/docker-compose.yml.retired`. The tool also extracts secrets in the files of stacks that moved. It changes only the lines of the new key, adds the value to the secrets file, and ends its output with `, 1 of them with new secrets`. Commit the stack file, and Pull the Repo in Komodo. Create the new secret Variable, replace the Environment of the Stack with the new `--print-env` text, and Deploy. The image IDs and environment hashes must not change, because the value did not change.
 
-    If you deleted the secrets file, the tool writes a new one with only the new value, and `--print-env` then stops with `is not plain or a secret` for the other secrets. In that case, add only the line `NAME='[[NAME]]'` of the new Variable to the Environment of the Stack, and delete the new secrets file after the Variable exists.
+    If you deleted the secrets file, the tool writes a new one with only the new value. `--print-env` then stops with `is not plain or a secret` for the other secrets. In that case, add only the line `NAME='[[NAME]]'` of the new Variable to the Environment of the Stack. Delete the new secrets file after the Variable exists.

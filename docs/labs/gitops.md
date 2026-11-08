@@ -71,7 +71,7 @@ I installed the first platform parts by hand, because ArgoCD was not there yet t
 
 ## Identity and secrets
 
-Keycloak gives single sign-on (SSO) with OIDC to ArgoCD, GitLab, Grafana and the Kubernetes API. For the Kubernetes API, I sign in to kubectl with the `oidc-login` plugin. Keycloak has the realm `homelab` with the group `platform-admins`. A realm is a separate set of users and settings in Keycloak. Keycloak keeps its data in its own Postgres StatefulSet, not in the Postgres that comes with its Helm chart.
+Keycloak gives single sign-on (SSO) with OIDC to ArgoCD, GitLab, Grafana and the Kubernetes API. For the Kubernetes API, I sign in to kubectl with the `oidc-login` plugin. Keycloak has the realm `homelab` with the group `platform-admins`. A realm is a separate set of users and configuration in Keycloak. Keycloak keeps its data in its own Postgres StatefulSet, not in the Postgres that comes with its Helm chart.
 
 FreeIPA on `ipa-01` manages these for the VMs:
 
@@ -93,13 +93,13 @@ Pi-hole is the DNS resolver of my LAN. When a computer on the LAN looks up a lab
 
 The Cloudflare records point at ingress-nginx or at `gitlab-01`. cert-manager gets the certificates for ingress-nginx from Let's Encrypt with the DNS-01 challenge. In this challenge, cert-manager proves that I own the domain with a DNS record. It writes the record through a Cloudflare API token with a limited scope. `gitlab-01` gets its own certificate with certbot, which a systemd timer renews.
 
-No port is forwarded from the internet to the lab. The certificates need no inbound access, because the DNS-01 challenge works through DNS only.
+My router forwards no port from the internet to the lab. The certificates need no inbound access, because the DNS-01 challenge works through DNS only.
 
 ## Observability and CI
 
 These parts watch the lab and run its CI jobs:
 
-- VictoriaMetrics handles the metrics. VMAgent collects them, VMSingle stores them and VMAlert checks the default alert rules of the chart.
+- VictoriaMetrics handles the metrics. VMAgent collects them, VMSingle stores them and VMAlert runs the default alert rules of the chart.
 - Loki stores the logs. It runs as a single binary.
 - Grafana Alloy is the collector agent. It runs as a DaemonSet, which puts one copy on each node. On `gitlab-01` and `ipa-01`, it runs as a systemd service.
 - Grafana shows the dashboards. I sign in to it through Keycloak.

@@ -7,7 +7,7 @@ description: The seven scripts and the configuration files of the Docker update 
 
 Copy these files into your repository, at the paths in their titles. Each block opens with a click, and the button at its top right copies the whole file.
 
-The seven scripts are general: they read the names of your servers from the stack maps or, for `backup_stacks.py`, from its config, and they hold no names of their own. Each one explains itself at the top of the file. They need Python 3.9 or later and bash, and `backup_stacks.py` also needs restic.
+The seven scripts are general, and they hold no names of their own. They read the names of your servers from the stack maps, and `backup_stacks.py` reads them from its configuration file. Each one explains itself at the top of the file. They need Python 3.9 or later and bash, and `backup_stacks.py` also needs restic.
 
 ## The scripts
 
@@ -713,7 +713,7 @@ Splits the large compose file into one folder per stack, moves secret values int
 
 ### check_images.py
 
-Compares the image of each container on a server with the image in its stack files and its `komodo_files`, and lists containers that no file describes. It only reads.
+Compares the image of each container on a server with the image in its stack files and its `komodo_files`. It also lists containers that no file describes. It only reads.
 
 - When: after each merge for a critical stack, after a reboot, and whenever you want proof. See [Daily use](daily-use.md#find-an-update-that-did-not-deploy).
 - Example: `python3 -I tools/check_images.py server-a`
@@ -993,7 +993,7 @@ Records every container with its configured image, image ID, digests, project, s
 
 ### find_literals.sh
 
-Lists the keys of a compose file that look sensitive, as `LITERAL` (the value is in the file) or `reference` (a variable), and the long flags of commands. It prints names only.
+Lists the keys of a compose file that look sensitive, and the long flags of commands. It marks each key as `LITERAL` (the value is in the file) or `reference` (a variable). It prints names only.
 
 - When: before the first split, to fill `secret_keys`, and to read each new stack file.
 - Example: `bash tools/find_literals.sh < /home/docker-compose.yml`
@@ -1211,7 +1211,7 @@ Prints a read-only picture of a Docker host: versions, containers, networks, fir
 
 ### scan_repo_secrets.py
 
-Searches every tracked file and every commit of the repository for the real secret values, and prints the file and key name of each hit, never a value.
+Searches every tracked file and every commit of the repository for the real secret values. It prints the file and key name of each hit, never a value.
 
 - When: before you push for the first time, after the move of each server, and whenever you are unsure.
 - Example: `python3 -I tools/scan_repo_secrets.py --repo /root/<your-repo> /root/secrets-server-a.env --env-dir /home/.env_files`
@@ -1426,7 +1426,7 @@ Backs up every Compose stack of a server with restic, one stopped stack at a tim
 - Reads: `/etc/backup-stacks/<name>.json` (example below) and `/etc/backup-stacks/<name>.env`. It does not use the stack map.
 - Example: `python3 -I /usr/local/sbin/backup_stacks.py server-a --all --dry-run`
 - Needs: restic, and Docker with the Compose plugin.
-- Exit codes: 0 every stack backed up, 1 something failed, 2 wrong arguments, config or secrets (no stack was stopped).
+- Exit codes: 0 every stack backed up, 1 something failed, 2 wrong arguments, configuration file or secrets (no stack was stopped).
 
 ??? example "tools/backup_stacks.py"
 
@@ -2936,9 +2936,9 @@ Backs up every Compose stack of a server with restic, one stopped stack at a tim
     }
     ```
 
-## The backup config and units
+## The backup configuration file and units
 
-`backup_stacks.py` reads one config for each server. [Weekly backups](backups.md#the-config) explains each key, with Tronitor and hooks. This example backs up the stacks of `server-a` to an NFS share.
+`backup_stacks.py` reads one configuration file for each server. [Weekly backups](backups.md#the-configuration-file) explains each key, with Tronitor and hooks. This example backs up the stacks of `server-a` to an NFS share.
 ??? example "tools/backup/server-a.json"
 
     ```json
@@ -2952,7 +2952,7 @@ Backs up every Compose stack of a server with restic, one stopped stack at a tim
     }
     ```
 
-The service is the same for every server: `%i` is the name of the config. Its stop settings let the script start the stack that is down and send its report when the run is stopped.
+The service is the same for every server: `%i` is the name of the configuration file. Its stop configuration lets the script start the stack that is down and send its report when systemd stops the run.
 
 ??? example "tools/systemd/backup-stacks@.service"
 
@@ -2981,7 +2981,7 @@ The service is the same for every server: `%i` is the name of the config. Its st
     IOSchedulingClass=idle
     ```
 
-One timer for each server. It uses the server's time zone; to fix one, write it after the time, for example `03:00:00 Etc/UTC`.
+One timer for each server. It uses the server's time zone. To fix one, write it after the time, for example `03:00:00 Etc/UTC`.
 
 ??? example "tools/systemd/backup-stacks-server-a.timer"
 

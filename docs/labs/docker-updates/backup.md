@@ -1,11 +1,11 @@
 ---
 title: Back up and record
-description: Back up the compose and env files, prepare the large file for the split, record every container and its image, and pin each service to its exact image.
+description: Back up the compose and env files, and prepare the large file for the split. Record every container and its image, and pin each service to its exact image.
 ---
 
 # Back up and record
 
-This part makes a backup, makes the large file ready for the split, records what runs, and pins each service to the exact image it runs. Later parts compare against this record, so that a move of a stack can prove that nothing changed.
+This part makes a backup and makes the large file ready for the split. It also records what runs, and pins each service to the exact image that it runs. Later parts compare against this record, so that a move of a stack can prove that nothing changed.
 
 ## Back up the files
 
@@ -33,9 +33,9 @@ Keep the backup until the whole project is finished.
 
 ## Prepare the large file
 
-`split_stacks.py` copies the services of the large file into the stack files, line by line, and declares the one shared network. Nothing else at the top level of the file is copied: no `volumes:`, `secrets:`, `configs:` or `x-` blocks. Make the large file fit these rules now, while every container still runs from it. A first look with `bash tools/find_literals.sh < /home/docker-compose.yml` and `docker compose -f /home/docker-compose.yml config --quiet` helps.
+`split_stacks.py` copies the services of the large file into the stack files, line by line, and declares the one shared network. The script copies nothing else at the top level of the file: no `volumes:`, `secrets:`, `configs:` or `x-` blocks. Make the large file fit these rules now, while every container still runs from it. A first look with `bash tools/find_literals.sh < /home/docker-compose.yml` and `docker compose -f /home/docker-compose.yml config --quiet` helps.
 
-1. Every volume is a bind mount with an absolute path, such as `/home/sonarr/config:/config`. A relative path such as `./sonarr:/config` is an error in the split, because the stack file lives in another folder. A named volume such as `db_data:/var/lib/postgresql/data` is not declared in the stack file. Change it to a bind mount, or add this block to the stack file after the split, before you commit it, with the real volume name from `docker volume ls`:
+1. Every volume is a bind mount with an absolute path, such as `/home/sonarr/config:/config`. A relative path such as `./sonarr:/config` is an error in the split, because the stack file lives in another folder. A named volume such as `db_data:/var/lib/postgresql/data` is not declared in the stack file. Change it to a bind mount. Or, after the split and before you commit, add this block to the stack file, with the real volume name from `docker volume ls`:
 
     ```yaml
     volumes:
@@ -44,13 +44,13 @@ Keep the backup until the whole project is finished.
         name: home_db_data
     ```
 
-2. Every service that talks to another service is on one shared network, named under `networks:` in each service. Services without `networks:` use the project's default network, and after the split each stack would get its own. To add one, declare it in the large file (for example `lab.docker`), add it to each service, and apply the file. Its real name is then `home_lab.docker`. Never run `docker compose -p home down`, because the stacks will keep using this network.
+2. Every service that talks to another service is on one shared network, named under `networks:` in each service. Services without `networks:` use the project's default network, and after the split each stack gets its own. To add one, declare it in the large file (for example `lab.docker`), add it to each service, and apply the file. Its real name is then `home_lab.docker`. Never run `docker compose -p home down`, because the stacks will keep using this network.
 3. Every service has `restart: unless-stopped`. With `on-failure`, containers stay down after a Docker update (see [Lessons learned](lessons.md#containers-stay-down-after-a-docker-update)).
-4. A value that the file takes from `/home/.env` as `${VAR}` stays a variable in the stack file. Komodo must provide it: add a secret value by hand to the secrets file as a `VAR='value'` line after the first split, and a plain value such as a time zone to `plain_env` in the stack map. Never put a secret into `plain_env`, because the map is committed.
+4. A value that the file takes from `/home/.env` as `${VAR}` stays a variable in the stack file. Komodo must provide it. After the first split, add a secret value by hand to the secrets file as a `VAR='value'` line. Add a plain value, such as a time zone, to `plain_env` in the stack map. Never put a secret into `plain_env`, because the map goes into Git.
 5. The file uses no YAML anchors (`&name`, `*name`, `<<:`), no `extends`, and no `network_mode: service:<name>` that points to a service of another stack.
 6. Services are indented by 2 spaces and their keys by 4. `check_images.py` reads that layout.
 
-If you changed the file, apply it. Compose recreates only the services whose settings changed:
+If you changed the file, apply it. Compose recreates only the services whose configuration changed:
 
 ```bash
 docker compose -p home -f /home/docker-compose.yml up -d
@@ -109,9 +109,9 @@ Do not overwrite `work/state-server-a.txt` after this point. Later steps compare
 
 ## Pin the images
 
-A pin is an image reference with a digest, such as `postgres:15-alpine@sha256:<64 hex digits>`. A digest is a hash that names one exact image. With pins, the move to stacks keeps each container on the image it runs today, even if the tag points to a newer image by now.
+A pin is an image reference with a digest, such as `postgres:15-alpine@sha256:<64 hex digits>`. A digest is a hash that names one exact image. With pins, each container keeps the image that it runs today when it moves to a stack. This is true even if the tag points to a newer image by now.
 
-The pins of a server go into `tools/pins/server-a.json` in the server's clone, one entry for each service in the compose file that will move into a stack:
+The pins of a server go into `tools/pins/server-a.json` in the server's clone. Add one entry for each service in the compose file that will move into a stack:
 
 ```json
 {
@@ -136,7 +136,7 @@ To see the digest that a tag has today, run this on any host with Docker. It onl
 docker buildx imagetools inspect lscr.io/linuxserver/sonarr:4.0.15.2941-ls292 --format '{{.Manifest.Digest}}'
 ```
 
-If field 4 of the record is empty, the tag moved to a newer image after the container started, so no repository digest names the running image. Then do one of these:
+If field 4 of the record is empty, the tag moved to a newer image after the container started. Then no repository digest names the running image. Do one of these:
 
 - If the server uses the containerd image store (`docker info | grep driver-type` shows `io.containerd.snapshotter.v1`), the image ID in field 3 is the digest. Use it.
 - With the older `overlay2` storage, the image ID is not a registry digest. Find the digest of the running version in the registry, for example by its version label in field 5. The command above shows the digest of a tag.

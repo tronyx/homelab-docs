@@ -9,7 +9,7 @@ Some stacks are critical: the Git pull of a Deploy, the webhook or a Periphery c
 
 ## Why critical stacks need another method
 
-A Komodo Deploy starts with a Git pull from Forgejo. Forgejo runs on `server-b`, and the proxy on `server-b` sends its traffic. So while the containers of `proxy` or `forgejo` on `server-b` are stopped, the Deploy of that stack fails at the Git pull, and nothing starts them.
+A Komodo Deploy starts with a Git pull from Forgejo. Forgejo runs on `server-b`, and the proxy on `server-b` sends its traffic. So while the containers of `proxy` or `forgejo` on `server-b` are stopped, the Deploy of that stack fails at the Git pull. Then nothing starts them.
 
 The compose-first method solves this. You start the new containers with a direct `docker compose` command from Komodo's own clone of the repository. Forgejo is then reachable again, and a Deploy lets Komodo take the stack over. Because the command uses Komodo's clone and the same project name, the containers carry the same labels that Komodo writes. The Deploy then finds nothing to change.
 
@@ -143,7 +143,7 @@ mv /home/docker-compose.yml /home/docker-compose.yml.retired
 
 Use these steps when Komodo Core is down, or when Forgejo is down. While Forgejo is down, every Deploy fails at the Git pull. The containers that run keep running. These steps only start, restart or recreate a stack.
 
-Komodo keeps its clone of the repository on each server, in `/home/komodo/periphery/repos/<your-repo>-server-a` and `-server-b`. The run directory of a stack is `<server>/<stack>` in that clone. After each Deploy, Komodo leaves the Environment of the stack in the file `.env` in the run directory, with the real secret values, and Compose reads it by itself.
+Komodo keeps its clone of the repository on each server, in `/home/komodo/periphery/repos/<your-repo>-server-a` and `-server-b`. The run directory of a stack is `<server>/<stack>` in that clone. After each Deploy, Komodo leaves the Environment of the stack, with the real secret values, in the file `.env` in the run directory. Compose reads that file by itself.
 
 1. Go to the run directory of the stack:
 
@@ -191,7 +191,7 @@ cd /root/<your-repo> && docker compose -f komodo/periphery-server-b/docker-compo
 
 ## Reboots and Docker updates
 
-Every service uses `restart: unless-stopped`. After a reboot or a restart of the Docker daemon, Docker starts each container again, except one that you stopped by hand, for example with Stop in Komodo.
+Every service uses `restart: unless-stopped`. After a reboot or a restart of the Docker daemon, Docker starts each container again. The exception is a container that you stopped by hand, for example with Stop in Komodo.
 
 !!! warning "Do not use `restart: on-failure`"
     With `on-failure`, Docker starts a container again only if it stopped with an exit code other than 0. Postgres stops with code 0 at a clean shutdown, and so do many other services. An update of `docker-ce` restarts the Docker daemon, and the containers stay down.

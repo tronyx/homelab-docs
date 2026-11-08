@@ -11,7 +11,7 @@ These are the problems that cost time during the build, so that you can skip the
 
 ### Containers stay down after a Docker update
 
-After an update of `docker-ce` or a reboot, some containers do not come back, often the databases first. With `restart: on-failure`, Docker starts a container again only if it stopped with an exit code other than 0, and Postgres stops with code 0 at a clean shutdown. Use `restart: unless-stopped` for every service. A container that you stop by hand still stays stopped.
+After an update of `docker-ce` or a reboot, some containers do not come back, often the databases first. With `restart: on-failure`, Docker starts a container again only if it stopped with an exit code other than 0. Postgres stops with code 0 at a clean shutdown. Use `restart: unless-stopped` for every service. A container that you stop by hand still stays stopped.
 
 ### Moving Docker's data folder moves almost nothing
 
@@ -24,13 +24,13 @@ Docker 29 uses the containerd image store on new installs. The images and their 
 5. Add `RequiresMountsFor=` in a drop-in file for each service, so that neither starts on an empty folder if the disk is not mounted. Run `systemctl daemon-reload`.
 6. Start containerd and Docker again. `docker info --format '{{.DockerRootDir}}'` must show the new path, and the image list must be the same as before. Delete the old folders only after some days without a problem.
 
-After each update of `containerd.io` or `docker-ce`, make sure that both settings are still in effect: `containerd config dump | grep -E '^root '` and `docker info --format '{{.DockerRootDir}}'`.
+After each update of `containerd.io` or `docker-ce`, make sure that both configuration values are still in effect: `containerd config dump | grep -E '^root '` and `docker info --format '{{.DockerRootDir}}'`.
 
 Docker rewrites the paths of each container at the next start, so no container needs a recreate.
 
 ### A prune leaves old images behind
 
-With the containerd image store, `docker image prune -a` keeps a tag that the configuration of a container names, even when the container runs the image of a digest. Old images pulled by tag, before the stack files pinned digests, then stay on the disk. Find them with `docker system df -v`: a tagged image with `0` containers whose name a running service uses. Remove each by name with `docker image rm`, without `-f`. With the older `overlay2` storage, `prune -a` removes them as expected.
+With the containerd image store, `docker image prune -a` keeps a tag that the configuration of a container names. It keeps the tag even when the container runs the image of a digest. Old images pulled by tag, before the stack files pinned digests, then stay on the disk. Find them with `docker system df -v`: a tagged image with `0` containers whose name a running service uses. Remove each by name with `docker image rm`, without `-f`. With the older `overlay2` storage, `prune -a` removes them as expected.
 
 ### A Compose version gap recreates containers
 
@@ -38,7 +38,7 @@ The first Komodo Deploy of a stack that you started by hand can recreate every c
 
 ### Docker Hub refuses requests
 
-A pull or a registry lookup fails with `429 Too Many Requests`. Docker Hub limits anonymous requests for each public IP address, and all hosts behind one router share it. Log in with a read-only Docker Hub token on the host, add the same account as a registry in Komodo, and wait or use another host for lookups.
+A pull or a registry lookup fails with `429 Too Many Requests`. Docker Hub limits anonymous requests for each public IP address, and all hosts behind one router share it. Log in with a read-only Docker Hub token on the host, and add the same account as a registry in Komodo. Then wait, or use another host for lookups.
 
 ## Komodo
 
@@ -48,7 +48,7 @@ A secret that holds a space and then `#` reaches the container cut short. Komodo
 
 ### Words vanish from the logs
 
-Komodo replaces the value of every secret Variable with a mask in its logs. If a secret value is a common word, such as a database user named like its service, that word disappears from every log line, container names included. Keep such values in mind when a log looks strange, or give the database user a name of its own.
+Komodo replaces the value of every secret Variable with a mask in its logs. A secret value can be a common word, such as a database user named like its service. Then that word disappears from every log line, container names included. Keep such values in mind when a log looks strange, or give the database user a name of its own.
 
 ### Periphery cannot read the env files
 
@@ -70,13 +70,13 @@ After a stack moves, a SWAG route to one of its containers returns 502. A move r
 
 ### The LAN rule must allow the router
 
-A LAN rule for `<komodo-host>` that allows only your PC also blocks your PC. A request to your public host name from the LAN goes out to the router and comes back in, so SWAG sees the router's LAN address. Allow the whole `<lan-subnet>`.
+A LAN rule for `<komodo-host>` that allows only your PC also blocks your PC. A request to your public host name from the LAN goes out to the router and comes back in. So SWAG sees the router's LAN address. Allow the whole `<lan-subnet>`.
 
 ## Renovate
 
 ### A closed pull request never comes back
 
-If you close a Renovate pull request without a merge, Renovate treats that version as ignored and opens no new pull request for it. A newer version gets a new pull request. For a major update, closing it ignores the whole major version, so newer releases of that major do not come either. Close a pull request only when you want to skip that update.
+If you close a Renovate pull request without a merge, Renovate treats that version as ignored and opens no new pull request for it. A newer version gets a new pull request. If you close the pull request of a major update, Renovate ignores the whole major version. Then newer releases of that major do not come either. Close a pull request only when you want to skip that update.
 
 ### A pull request shows "branch already included"
 
@@ -98,7 +98,7 @@ In 2025, Bitnami removed most of its free version tags from Docker Hub. An image
 
 ### A database major upgrade needs a dump and a restore
 
-Postgres does not read the data folder of an older major version, so a Postgres upgrade always needs a dump and a restore. MariaDB can upgrade a data folder in place (with `mariadb-upgrade`), and Mongo can do it one major version at a time, but a dump and a restore is the safe path for all three, because the old folder stays untouched as the rollback. Dump the old database, restore the dump into a temporary container on a new folder, compare the table and row counts of both, then change the stack file. Keep the old folder until the new version has run for some weeks.
+Postgres does not read the data folder of an older major version, so a Postgres upgrade always needs a dump and a restore. MariaDB can upgrade a data folder in place (with `mariadb-upgrade`), and Mongo can do it one major version at a time. But a dump and a restore is the safe path for all three, because the old folder stays untouched as the rollback. Dump the old database, and restore the dump into a temporary container on a new folder. Compare the table and row counts of both, then change the stack file. Keep the old folder for some weeks after the new version starts.
 
 ### Postgres 18 mounts another path
 
@@ -110,13 +110,13 @@ A dump can warn that a database was created under another `glibc` version than t
 
 ### Application images can pin their database extension
 
-Immich checks the version of its vector extension at start. Its Postgres image must have the version that the Immich release expects, which can mean a newer Postgres image is not usable yet. Follow the compose file of the application's release, not the newest Postgres.
+Immich reads the version of its vector extension at start. Its Postgres image must have the version that the Immich release expects, which can mean a newer Postgres image is not usable yet. Follow the compose file of the application's release, not the newest Postgres.
 
 ## Forgejo and Git
 
 ### The doctor breaks SSH passthrough
 
-With SSH passthrough, Forgejo and the host share one `authorized_keys` file, which also holds a plain key line that the passthrough needs. `forgejo doctor check --all` reports that file as an error. Do not run the fixes it suggests (`forgejo admin regenerate keys`, `--run authorized-keys --fix`): they write the file from Forgejo's keys only, drop the plain line, and stop every push over SSH.
+With SSH passthrough, Forgejo and the host share one `authorized_keys` file, which also holds a plain key line that the passthrough needs. `forgejo doctor check --all` reports that file as an error. Do not run the fixes that it suggests (`forgejo admin regenerate keys`, `--run authorized-keys --fix`). They write the file from Forgejo's keys only, drop the plain line, and stop every push over SSH.
 
 ### HTTPS pushes hang on Windows
 
@@ -126,4 +126,4 @@ On a Windows PC, an HTTPS remote can make Git Credential Manager open a browser 
 
 ### dnf stops on an EPEL package
 
-A plain `dnf update` stops with `nothing provides ... needed by ... from epel`. Oracle Linux sets the dnf variable `releasever` to the major version only, so the EPEL address becomes `epel-10`, which points at the EPEL branch for the next minor release. Until Oracle Linux catches up, update with `dnf update --nobest`, and make sure that the summary shows no package under Removing. Do not pin EPEL to a minor version: after the next upgrade, a forgotten pin keeps the host on a branch with no updates.
+A plain `dnf update` stops with `nothing provides ... needed by ... from epel`. Oracle Linux sets the dnf variable `releasever` to the major version only. So the EPEL address becomes `epel-10`, which points at the EPEL branch for the next minor release. Until Oracle Linux catches up, update with `dnf update --nobest`, and make sure that the summary shows no package under Removing. Do not pin EPEL to a minor version: after the next upgrade, a forgotten pin keeps the host on a branch with no updates.

@@ -241,4 +241,4 @@ The Periphery of `server-b` connects out to Core through the route. It uses an o
 8. In Komodo, make sure that `server-b` shows OK again, then delete the onboarding key.
 
 !!! tip "Periphery sees the host paths"
-    Periphery runs Compose inside its own container. Two mounts in its compose file make that work: the root directory `/home/komodo/periphery` has the same path inside and outside, and `/home/.env_files` is mounted read-only, so that the stacks can read their env files.
+    Periphery runs Compose inside its own container. Two mounts in its compose file make that work. The root directory `/home/komodo/periphery` has the same path inside and outside. `/home/.env_files` is mounted read-only, so that the stacks can read their env files.

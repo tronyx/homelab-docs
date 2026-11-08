@@ -7,7 +7,7 @@ description: Back up every Compose stack once a week with restic, one stopped st
 
 Renovate and Komodo keep your images current, and a revert rolls an image back. Neither one protects the data of your stacks. This part adds a weekly backup of every stack with `backup_stacks.py` and restic.
 
-restic is a backup program that stores each chunk of data once. After the first run, a backup writes only what changed, so a weekly run of a large stack takes seconds to minutes. restic also encrypts everything, and it can write to a local disk, an NFS share, SFTP, or S3-compatible storage such as Backblaze B2.
+restic is a backup program that stores each chunk of data once. After the first run, a backup writes only what changed, so a weekly run of a large stack takes seconds to minutes. restic also encrypts everything. It can write to a local disk, an NFS share, SFTP, or S3-compatible storage such as Backblaze B2.
 
 A copy of a database folder is only consistent while the database is stopped. So the script stops one stack, backs up the folders that its containers mount, and starts the stack again. Each stack is down only for its own backup.
 
@@ -34,15 +34,15 @@ The script never pulls an image, never runs `docker compose down`, and never del
 ## What you need
 
 - Docker with the Compose plugin, and Python 3.9 or later. The script uses the standard library only.
-- A current release of restic on each server. The setup was tested with 0.19.1.
+- A current release of restic on each server. I tested the setup with 0.19.1.
 - A place for the repository: a disk or share that is not the server's own system disk, or a bucket.
-- The script, an example config and the systemd units from the [Scripts](scripts.md#backup_stackspy) page.
+- The script, an example configuration file and the systemd units from the [Scripts](scripts.md#backup_stackspy) page.
 
 ## Set it up
 
 Do these steps on each server, in a root shell. The examples use `server-a`, with its data in `/home` and the repository on an NFS share at `/mnt/backup`.
 
-1. Install restic from its release page, and check the download against the release's `SHA256SUMS`:
+1. Install restic from its release page, and compare the download with the release's `SHA256SUMS`:
 
     ```bash
     cd /tmp && curl -fsSLO https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_linux_amd64.bz2 && curl -fsSLO https://github.com/restic/restic/releases/download/v0.19.1/SHA256SUMS && grep ' restic_0.19.1_linux_amd64.bz2$' SHA256SUMS | sha256sum -c -
@@ -54,7 +54,7 @@ Do these steps on each server, in a root shell. The examples use `server-a`, wit
     bunzip2 -c /tmp/restic_0.19.1_linux_amd64.bz2 > /usr/local/bin/restic && chmod 755 /usr/local/bin/restic && restic version
     ```
 
-2. Put the script in your repository as `tools/backup_stacks.py`, and the config as `tools/backup/server-a.json`. Edit the config for the server (see [The config](#the-config)), commit and push, and pull on the server.
+2. Put the script in your repository as `tools/backup_stacks.py`, and the configuration file as `tools/backup/server-a.json`. Edit the configuration file for the server (see [The configuration file](#the-configuration-file)), commit and push, and pull on the server.
 3. Link both into place, so that a `git pull` updates them:
 
     ```bash
@@ -79,13 +79,13 @@ Do these steps on each server, in a root shell. The examples use `server-a`, wit
 
     The output must say `created restic repository`.
 
-6. Show what a run would do. It stops nothing and reads no secrets:
+6. Show what a run does, without a real run. It stops nothing and reads no secrets:
 
     ```bash
     python3 -I /usr/local/sbin/backup_stacks.py server-a --all --dry-run
     ```
 
-    Read the order, and for each stack the paths, the skipped paths and the tests to pause. A `Note:` line means that a name in your config matches no stack.
+    Read the order, and for each stack the paths, the skipped paths and the tests to pause. A `Note:` line means that a name in your configuration file matches no stack.
 
 7. Make the first snapshot of every stack without stopping them. This is the slow run, because it uploads everything:
 
@@ -105,7 +105,7 @@ Do these steps on each server, in a root shell. The examples use `server-a`, wit
     python3 -I /usr/local/sbin/backup_stacks.py server-a --restic restore latest --tag stack:<stack> --target /tmp/restore-test && diff -rq /tmp/restore-test/home/<stack> /home/<stack> | head
     ```
 
-    The run must end with `exit=0`. Files that the stack changed after its start can differ; the rest must be the same. Then delete `/tmp/restore-test`.
+    The run must end with `exit=0`. Files that the stack changed after its start can differ. The rest must be the same. Then delete `/tmp/restore-test`.
 
 9. Install the service and a timer. The service is the same for every server. The timer starts it once a week:
 
@@ -116,31 +116,31 @@ Do these steps on each server, in a root shell. The examples use `server-a`, wit
     The timer uses the server's time zone. To fix a zone, write it after the time, for example `OnCalendar=Sun *-*-* 03:00:00 Etc/UTC`. With two servers, give them different times when one server's run stops something the other needs, such as the proxy in front of your Healthchecks.
 
 !!! tip "Use --restic, not the shell"
-    For every restic command, such as `snapshots`, `restore` or `check`, use `--restic`. It runs restic with the secrets file. Do not source the secrets file in a shell: the shell changes values that contain `$`, a backtick or `\`, and the script reads them as written.
+    For every restic command, such as `snapshots`, `restore` or `check`, use `--restic`. It runs restic with the secrets file. Do not source the secrets file in a shell. The shell changes values that contain `$`, a backtick or `\`, but the script reads them as written.
 
-## The config
+## The configuration file
 
-`/etc/backup-stacks/server-a.json` holds the settings of one server. Only `data_roots` is required. An unknown key stops the run with an error, so a typing mistake cannot turn off a setting without you knowing.
+`/etc/backup-stacks/server-a.json` holds the configuration of one server. Only `data_roots` is required. An unknown key stops the run with an error, so a typing mistake cannot change the configuration without you knowing.
 
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `data_roots` | (required) | Folders whose bind mounts are backed up, for example `["/home"]` or `["/srv/appdata"]`. Not `/`. |
 | `host` | the host name | restic's `--host`. Keep it the same, or the retention and the seed clean-up start a new history. |
-| `require_mount` | none | A share that must answer. It is checked before the run and before each stack. |
+| `require_mount` | none | A share that must answer. The script tests it before the run and before each stack. |
 | `last` | `[]` | Stacks that go at the end, in this order. Put the reverse proxy last. |
 | `exclude` | `[]` | Stacks that `--all` leaves out. A stack named on the command line still runs. |
 | `timeout_minutes` | `60` | The limit for one stack. restic is killed at the limit, and the stack starts again. |
 | `retention` | `{"keep_weekly": 4}` | Any of `keep_last`, `keep_hourly`, `keep_daily`, `keep_weekly`, `keep_monthly`, `keep_yearly`. |
 | `tronitor` | off | Pause Healthchecks tests while a stack is stopped (see below). |
 | `hooks` | none | Commands before and after the run and each stack (see below). |
-| `secrets_file` | `<name>.env` next to the config | |
+| `secrets_file` | `<name>.env` next to the configuration file | |
 | `manifest_dir`, `lock_path` | `/var/lib/backup-stacks/manifests`, `/run/backup-stacks.lock` | |
 
 A name in `last`, `exclude` or `tronitor.monitors` that matches no stack is a note in the report and in the dry run.
 
 ### Monitoring with Tronitor
 
-If you check your apps with Healthchecks and use [Tronitor](https://github.com/tronyx/Tronitor), the script can pause each stack's tests while it is stopped:
+If you monitor your apps with Healthchecks and use [Tronitor](https://github.com/tronyx/Tronitor), the script can pause each stack's tests while it is stopped:
 
 ```json
 "tronitor": {
@@ -154,10 +154,10 @@ If you check your apps with Healthchecks and use [Tronitor](https://github.com/t
 ```
 
 - `path` is the Tronitor command. A command without a folder is found on the `PATH`. The script reads Tronitor's list with `--json`, so it needs the Python version of Tronitor. The older Bash script `tronitor.sh` does not have `--json`.
-- `monitors` names the tests by the names that `tronitor -m hc -l` shows. `["*"]` means every test that is neither paused nor down. Use it for a stack that many checks depend on, such as the reverse proxy.
+- `monitors` names the tests by the names that `tronitor -m hc -l` shows. `["*"]` means every test that is neither paused nor down. Use it for a stack that many tests depend on, such as the reverse proxy.
 - A test that is already paused or down is left alone, so a test that you paused by hand stays paused.
-- After the start, a test counts as unpaused only when Tronitor's list shows it, and the script tries again for up to 5 minutes. Right after the stack that runs Healthchecks starts, Healthchecks may not answer yet.
-- `lock_dir` is optional. Set it to Tronitor's lock folder, `/tmp` by default, if your check scripts skip an app while `<test ID>.lock` exists there. The script then creates those lock files, and `healthchecks.lock` for `"*"`. After the unpause, it removes the lock files that are left, also those that Tronitor keeps for a test whose unpause failed.
+- After the start, a test counts as unpaused only when Tronitor's list shows it, and the script tries again for up to 5 minutes. Right after the stack that runs Healthchecks starts, Healthchecks sometimes does not answer yet.
+- `lock_dir` is optional. Set it to Tronitor's lock folder, `/tmp` by default, if your test scripts skip an app while `<test ID>.lock` exists there. The script then creates those lock files, and `healthchecks.lock` for `"*"`. After the unpause, it removes the lock files that are left, also those that Tronitor keeps for a test whose unpause failed.
 
 ### Hooks
 
@@ -172,16 +172,16 @@ A hook is a command, written as a list of words. It runs without a shell, with a
 
 | Hook | When | Variables |
 | --- | --- | --- |
-| `before_run` | after the run lock and the share check | `BACKUP_HOOK` |
+| `before_run` | after the run lock and the share test | `BACKUP_HOOK` |
 | `before_stop` | before a stack is stopped | `BACKUP_STACK` |
 | `after_start` | after the stack started again, also after a failure | `BACKUP_STACK`, `BACKUP_STACK_OK` (`1` or `0`) |
 | `after_run` | after the last stack, also when the run is stopped | `BACKUP_RUN_OK` (`1` or `0`) |
 
-A seed run only runs `before_run` and `after_run`. A hook that fails, hangs or cannot start is a note in the report. It never changes the result of the backup. A file that another script checks, such as the one above, is a typical use: that script can skip its alerts while a backup runs.
+A seed run only runs `before_run` and `after_run`. A hook that fails, hangs or cannot start is a note in the report. It never changes the result of the backup. A file that another script looks for, such as the one above, is a typical use: that script can skip its alerts while a backup runs.
 
 ## The secrets file
 
-`/etc/backup-stacks/server-a.env` has one `KEY='value'` line for each setting. Put every value in single quotes. Only the first two are required:
+`/etc/backup-stacks/server-a.env` has one `KEY='value'` line for each value. Put every value in single quotes. Only the first two are required:
 
 ```text
 RESTIC_REPOSITORY='/mnt/backup/restic-server-a'
@@ -203,29 +203,29 @@ AWS_SECRET_ACCESS_KEY='<applicationKey>'
 Keys that start with `RESTIC_`, `AWS_`, `B2_`, `AZURE_`, `GOOGLE_`, `OS_`, `ST_` or `RCLONE_` go to restic and to nothing else. The script refuses a file that others can read, and its messages name keys, never values.
 
 !!! tip "A B2 bucket for restic"
-    Give restic a bucket of its own. Set its lifecycle to "Keep only the last version of the file", leave Object Lock off, and make an application key for that bucket only, with read and write access. Otherwise, the weekly prune either frees no space or fails.
+    Give restic a bucket of its own. Set its lifecycle to "Keep only the last version of the file", and leave Object Lock off. Make an application key for that bucket only, with read and write access. Otherwise, the weekly prune either frees no space or fails.
 
 Each notification is used only when its key is set:
 
-- **Discord:** one message per run, green or red.
-- **Healthchecks.io:** a ping at the start, then success or `/fail` with the report. Give the check the schedule of the timer and a grace time of a few hours, and you also get an alert when a run never happens. Use a check that does not run on the server it watches.
-- **ntfy:** the report, with the first line as the title, high priority and a warning tag on a failure.
+- Discord: one message per run, green or red.
+- Healthchecks.io: a ping at the start, then success or `/fail` with the report. Give the test the schedule of the timer and a grace time of a few hours. Then you also get an alert when a run never happens. Use a test that does not run on the server it watches.
+- ntfy: the report, with the first line as the title, high priority and a warning tag on a failure.
 
 ## Read the report
 
 | Line | Meaning |
 | --- | --- |
-| `Backup of server-a succeeded` | Every stack was backed up, the prune and the check worked. |
+| `Backup of server-a succeeded` | Every stack was backed up, and the prune and `restic check` worked. |
 | `<stack>: ok, down 1m 15s, added 2.0 KiB` | The stack was stopped for that time, and the snapshot added that much new data. |
 | `<stack>: FAILED, <error>` | That stack has no new snapshot. Its older snapshots are kept. |
 | `Still stopped: <stack>` | The stack did not start again. Start it, and read its log. |
 | `not backed up: backup target not answering` | The share or the bucket stopped answering. No further stack was stopped. |
 | `Missing paths:` | A folder that a container mounts does not exist. The rest of the stack was backed up. |
-| `Notes:` | For example a test that is still paused, a hook that failed, or a name in the config that matches no stack. |
+| `Notes:` | For example a test that is still paused, a hook that failed, or a name in the configuration file that matches no stack. |
 | `restic check:` | The repository has a problem. Run `--restic check` by hand before the next prune. |
 | `Skipped:` | Paths that are never backed up. |
 
-Exit codes: 0 all stacks backed up, 1 something failed, 2 a problem with the arguments, the config or the secrets, another run, or the share. With exit code 2, no stack was stopped.
+Exit codes: 0 all stacks backed up, 1 something failed, 2 a problem with the arguments, the configuration file or the secrets, another run, or the share. With exit code 2, no stack was stopped.
 
 To stop a run that hangs, use `systemctl stop backup-stacks@server-a.service`. The script then starts the stack that is down, restores its tests, runs `after_run` and sends a red report before it exits.
 
@@ -269,7 +269,7 @@ To restore only some files, add `--include <path>` to the restore command.
 
 ## Look for data in anonymous volumes
 
-An image can declare a volume, for example `VOLUME /var/lib/app`. If your compose file mounts nothing at that path, Docker creates an anonymous volume. The data in it is not backed up, and it is replaced by an empty volume every time the container is recreated, for example after an image update.
+An image can declare a volume, for example `VOLUME /var/lib/app`. If your compose file mounts nothing at that path, Docker creates an anonymous volume. The script does not back up the data in it. Docker replaces it with an empty volume every time it recreates the container, for example after an image update.
 
 The dry run lists these as `anonymous volume <path> of <container>`. For each one, look at what is inside:
 

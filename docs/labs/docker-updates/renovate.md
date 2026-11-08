@@ -19,7 +19,7 @@ Renovate is a bot that looks for newer images and opens a pull request for each 
 | Label | A label named `deploy-by-hand` in `<your-user>/<your-repo>`, under Issues, then Labels. Create it before the first run, in a color that stands out. Renovate puts it on every pull request that the merge does not deploy. |
 
 !!! note "Runner types"
-    A runner of type Repository takes jobs from one repository only. If a job waits with `Waiting for a runner with the following label: docker`, open Site Administration, then Actions, then Runners, and make sure that a runner of type Individual or Global shows `Idle`.
+    A runner of type Repository takes jobs from one repository only. If a job waits with `Waiting for a runner with the following label: docker`, open Site Administration, then Actions, then Runners. Make sure that a runner of type Individual or Global shows `Idle`.
 
 ## The workflow
 
@@ -165,11 +165,11 @@ What the rules do:
 4. Databases get no major updates, because those need a planned upgrade with a dump and a restore. MariaDB and Mongo also get no minor updates, because each x.y of those is a new release series. They still get patch and digest updates, which carry the security fixes.
 5. The Immich server and machine learning images update together, and so do Komodo Core and both Periphery files.
 6. LinuxServer tags such as `5.9.0-ls496` compare by version, then by the build number after `-ls`.
-7. A pull request for a critical stack or for `komodo/` carries a note that the merge does not deploy it, and the label `deploy-by-hand`, which the list of pull requests shows.
+7. A pull request for a critical stack or for `komodo/` carries a note that the merge does not deploy it. It also carries the label `deploy-by-hand`, which the list of pull requests shows.
 8. Renovate assigns each new pull request to `<your-user>`, so Forgejo's filter "Assigned to you" lists every update. Renovate has no option to assign the Dependency Dashboard issue. Watch the repository to be told about it.
 
 !!! tip "Database tags must name a series"
-    Use a tag such as `postgres:18`, `redis:8-alpine` or `mariadb:11.4.13` for every database. A tag such as `latest` or `alpine` follows the newest major version, so a digest update of it can move a database to a new major version without a review.
+    Use a tag such as `postgres:18`, `redis:8-alpine` or `mariadb:11.4.13` for every database. A tag such as `latest` or `alpine` follows the newest major version. So a digest update of such a tag can move a database to a new major version without a review.
 
 To test a change to `renovate.json` before you push it, run the Renovate validator on your PC with the version of the workflow's image:
 
@@ -180,7 +180,7 @@ npx --yes --package renovate@44.221.5 -- renovate-config-validator --strict
 ## Run Renovate by hand
 
 1. In Forgejo, open `<your-user>/<your-repo>`, then Actions, then the workflow `Renovate`, and click Run workflow on `main`.
-2. Leave Dry run checked to see what Renovate would change. A dry run logs at debug level and creates no branch and no pull request. Read its log: it lists every file and image that Renovate found. Uncheck Dry run for a real run.
+2. Leave Dry run on to see the changes that Renovate plans. A dry run logs at debug level and creates no branch and no pull request. Read its log: it lists every file and image that Renovate found. Turn off Dry run for a real run.
 
 The first real run opens up to 10 pull requests and an issue named Dependency Dashboard, which lists all pending updates.
 
