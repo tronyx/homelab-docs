@@ -1,5 +1,5 @@
 ---
-title: Homelab Docs
+title: Home
 description: How my homelab grew from one media server in a basement in 2010 to a 45U rack and a Kubernetes lab, and what it did for my career.
 hide:
   - navigation
