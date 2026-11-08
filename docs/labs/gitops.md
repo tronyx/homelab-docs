@@ -1,9 +1,7 @@
 ---
-title: GitOps Lab
+title: Production-like GitOps Lab
 description: A production-like Kubernetes platform on eight VMs on Sauron, built from code with Terraform, Ansible, GitLab and ArgoCD.
 ---
-
-# GitOps Lab
 
 The GitOps Lab is my second lab. I built it to run a Kubernetes platform the way a production team runs one. GitOps means that a Git repository describes what runs, and every change goes through a commit.
 
@@ -25,7 +23,7 @@ All eight VMs run Oracle Linux 9. Terraform builds them from a template. Each VM
 
 ## The nodes
 
-| Host name | Role | vCPU | Memory | Disk | Address |
+| Hostname | Role | vCPUs | Memory | Disk Size | IP Address |
 | --- | --- | --- | --- | --- | --- |
 | `k8s-cp-01` | Kubernetes control plane | 4 | 8 GB | 80 GB | 192.168.1.200 |
 | `k8s-cp-02` | Kubernetes control plane | 4 | 8 GB | 80 GB | 192.168.1.201 |

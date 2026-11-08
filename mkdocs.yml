@@ -118,7 +118,7 @@ nav:
   - HOME:
     - index.md
   - PRIMARY LAB:
-    - Primary Lab:
+    - The Main Home Lab:
       - labs/primary/index.md
       - labs/primary/network.md
       - labs/primary/servers.md
@@ -126,7 +126,7 @@ nav:
       - labs/primary/cameras.md
       - labs/primary/storage-and-backups.md
       - labs/primary/rack-and-power.md
-    - Automated Docker updates:
+    - Automated Docker Updates:
       - labs/docker-updates/index.md
       - labs/docker-updates/prerequisites.md
       - labs/docker-updates/backup.md
@@ -140,4 +140,4 @@ nav:
       - labs/docker-updates/lessons.md
       - labs/docker-updates/scripts.md
   - GITOPS LAB:
-    - labs/gitops.md
+    - Production-Like GitOps Lab: labs/gitops.md
