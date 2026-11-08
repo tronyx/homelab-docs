@@ -136,3 +136,87 @@ img[src*='#center'] {
     display: block;
     margin: auto;
 }
+
+/* Home page: the then-and-now photo pair */
+.home-hero {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 1rem;
+	margin: 1rem 0 1.5rem;
+}
+.md-typeset .home-hero figure {
+	margin: 0;
+	max-width: 100%;
+}
+/* Same height for both photos, so the wide workbench and the tall rack line up */
+.home-hero img {
+	height: 26rem;
+	width: auto;
+	max-width: 100%;
+	border-radius: var(--base-border-radius);
+}
+.md-typeset .home-hero figcaption {
+	max-width: none;
+	margin: 0.4rem 0 0;
+	font-size: 0.75rem;
+	color: var(--md-default-fg-color--light);
+}
+
+/* Home page: the lab and career timelines, side by side */
+.home-timelines {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 2.5rem;
+}
+.md-typeset .home-timeline h2 {
+	margin-top: 1rem;
+}
+.home-steps {
+	margin: 0;
+	padding: 0;
+	border-left: 2px solid var(--md-default-fg-color--lightest);
+}
+.home-step {
+	position: relative;
+	margin: 0 0 1.25rem;
+	padding-left: 1.25rem;
+}
+.home-step::before {
+	content: "";
+	position: absolute;
+	left: calc(-0.35rem - 1px);
+	top: 0.35rem;
+	width: 0.7rem;
+	height: 0.7rem;
+	border-radius: 50%;
+	background: var(--md-accent-fg-color);
+}
+.home-when {
+	display: block;
+	font-weight: 700;
+	color: var(--md-accent-fg-color);
+}
+.md-typeset .home-step p {
+	margin: 0.4rem 0 0;
+}
+.md-typeset .home-step img {
+	height: 6rem;
+	width: auto;
+	max-width: 100%;
+	margin: 0.4rem 0.4rem 0 0;
+	object-fit: cover;
+	border-radius: var(--base-border-radius);
+	border: 1px solid var(--md-default-fg-color--lightest);
+}
+
+/* On a narrow screen, stack the photos and the timelines */
+@media screen and (max-width: 60em) {
+	.home-timelines {
+		grid-template-columns: 1fr;
+	}
+	.home-hero img {
+		height: auto;
+		max-height: 24rem;
+	}
+}
