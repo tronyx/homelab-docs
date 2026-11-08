@@ -118,9 +118,9 @@ Move `forgejo` after the proxy, with the same steps and these changes. Forgejo i
 3. In "The move", step 1 stops every container of the stack, then copies the data folders while nothing writes to them, then removes the containers. Use the container names of your stack. The backup holds secret keys from `app.ini`, so only root can read it:
 
     ```bash
-    docker stop runner docker_dind forgejo forgejo-postgres
+    docker stop forgejo-runner forgejo-dind forgejo forgejo-postgres
     (umask 077; sed -nE 's/^\s+- "?(\/[^:"]+):.*/\1/p' server-b/forgejo/docker-compose.yml | sort -u | tar -czf /root/backups/pre-automation/forgejo-data.tar.gz -T -)
-    docker rm runner docker_dind forgejo forgejo-postgres
+    docker rm forgejo-runner forgejo-dind forgejo forgejo-postgres
     ```
 
 4. Do steps 2 to 4 of "The move" with `forgejo` in place of `proxy`, and `work/forgejo.env` as the env file.

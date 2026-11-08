@@ -116,7 +116,14 @@ nav:
   - HOME:
     - index.md
   - PRIMARY LAB:
-    - labs/primary.md
+    - Primary Lab:
+      - labs/primary/index.md
+      - labs/primary/network.md
+      - labs/primary/servers.md
+      - labs/primary/applications.md
+      - labs/primary/cameras.md
+      - labs/primary/storage-and-backups.md
+      - labs/primary/rack-and-power.md
     - Automated Docker updates:
       - labs/docker-updates/index.md
       - labs/docker-updates/prerequisites.md
