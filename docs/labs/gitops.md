@@ -82,7 +82,7 @@ FreeIPA on `ipa-01` manages these for the VMs:
 - The SSH keys of the users
 - The DNS zone `lab.internal`
 
-Vault keeps the secrets. External Secrets Operator (ESO) reads them from Vault and makes Kubernetes Secrets from them. No secret is in Git. Vault keeps its data in files on a persistent volume. When Vault restarts, it seals itself and cannot read its data. I then unseal it with three of its five key shares.
+Vault keeps the secrets. External Secrets Operator (ESO) reads them from Vault and makes Kubernetes Secrets from them. Git holds only references to the secrets. One early manifest still holds a database password in Git, and I plan to remove it. Vault keeps its data in files on a persistent volume. When Vault restarts, it seals itself and cannot read its data. I then unseal it with three of its five key shares.
 
 If Keycloak or FreeIPA fails, I still have break-glass access to the cluster, the VMs and Keycloak. Break-glass access is an emergency sign-in that does not need the failed system.
 
@@ -101,7 +101,7 @@ No port is forwarded from the internet to the lab. The certificates need no inbo
 
 These parts watch the lab and run its CI jobs:
 
-- VictoriaMetrics handles the metrics. VMAgent collects them, VMSingle stores them and VMAlert checks the alert rules.
+- VictoriaMetrics handles the metrics. VMAgent collects them, VMSingle stores them and VMAlert checks the default alert rules of the chart.
 - Loki stores the logs. It runs as a single binary.
 - Grafana Alloy is the collector agent. It runs as a DaemonSet, which puts one copy on each node. On `gitlab-01` and `ipa-01`, it runs as a systemd service.
 - Grafana shows the dashboards. I sign in to it through Keycloak.
@@ -111,7 +111,7 @@ These parts watch the lab and run its CI jobs:
 
 - Add NetBox for DCIM and IPAM. It will record the hardware, the cables and the addresses of the lab.
 - Add Velero to back up the cluster to MinIO on a NAS.
-- Expand the monitoring (phase 14 of my build plan) with alert rules, an Alertmanager receiver, and metrics from etcd and kube-vip.
+- Expand the monitoring (phase 14 of my build plan) with my own alert rules, an Alertmanager receiver, and metrics from etcd and kube-vip.
 - Do a hardening pass on the lab.
 - Deploy mock apps to test high availability and failover.
 
