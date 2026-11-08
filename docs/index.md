@@ -1,5 +1,5 @@
 ---
-title: Homelab Docs
+title: Home
 description: How my homelab grew from external USB drives and a first file server in a basement to a 45U rack and a Kubernetes lab, and what it did for my career.
 hide:
   - navigation
