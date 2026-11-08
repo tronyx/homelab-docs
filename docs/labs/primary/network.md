@@ -91,6 +91,7 @@ The table holds only private addresses inside the lab. The Cloud Server is outsi
     | Bolg IPMI | `bolg-ipmi` | 192.168.1.10 |
     | Sauron | `sauron` | 192.168.1.11 |
     | Sauron IPMI | `sauron-ipmi` | 192.168.1.13 |
+    | Playground (VM on Sauron) | `playground` | 192.168.1.34 |
     | ReadyNAS 3138 | `readynas3138` | 192.168.1.38 |
     | vCenter (VM on Bolg) | `vcenter` | 192.168.1.71 |
     | APC PowerChute Network Shutdown (VM on Bolg) | `apc-pc-va` | 192.168.1.72 |
@@ -98,7 +99,9 @@ The table holds only private addresses inside the lab. The Cloud Server is outsi
     | APC Network Management Card | `apc-nmc` | 192.168.1.81 |
     | Suladan (VM on Bolg) | `suladan` | 192.168.1.103 |
     | Gothmog | `gothmog` | 192.168.1.104 |
-    | GitOps Lab VMs on Sauron | See [GitOps Lab](../gitops.md) | 192.168.1.34, 192.168.1.200 to 192.168.1.206, 192.168.1.208 |
+    | GitOps Lab VMs on Sauron | See [GitOps Lab](../gitops.md) | 192.168.1.200 to 192.168.1.206, 192.168.1.208 |
+    | kube-vip VIP (GitOps Lab Kubernetes API) | - | 192.168.1.207 |
+    | MetalLB pool (GitOps Lab) | - | 192.168.1.230 to 192.168.1.250 |
     | Front camera | `yocum-uvc-01` | 172.27.1.2 |
     | Side camera | `yocum-uvc-02` | 172.27.1.3 |
     | Backyard camera | `yocum-uvc-03` | 172.27.1.4 |

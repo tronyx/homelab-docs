@@ -38,7 +38,7 @@ Sauron is the backup ESXi server. It runs ESXi 8.0.0.
 - Disks: 10x 960 GB Samsung SM863 enterprise SSDs in RAID 10
 - Network: dual SFP+ 10 Gb NIC (10Gtek X520-10G-2S), and a 1 Gb NIC as management standby
 
-Sauron runs the VMs of the [GitOps Production-like Lab](../gitops.md). These VMs run only while I work on that lab.
+Sauron runs the VMs of the [GitOps Lab](../gitops.md). These VMs run only while I work on that lab. Sauron also runs a `playground` VM that is not part of that lab.
 
 ## Morgoth
 

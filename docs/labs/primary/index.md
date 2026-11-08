@@ -22,7 +22,7 @@ Select the diagram to open it full screen. The full-screen version is an SVG fil
 - [Storage and backups](storage-and-backups.md): the Unraid arrays, the ReadyNAS shares and the backup flows.
 - [Rack and power](rack-and-power.md): the 45U rack and the map from each UPS to its devices.
 
-The [GitOps Production-like Lab](../gitops.md) runs on VMs on Sauron.
+The [GitOps Lab](../gitops.md) runs on VMs on Sauron.
 
 ## Planned
 
