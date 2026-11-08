@@ -1,6 +1,6 @@
 ---
 title: Cameras
-description: The Unifi Protect cameras of my Primary Lab: models, connections and which ones are planned or dead.
+description: The Unifi Protect cameras of my Primary Lab, with their models, their connections and which ones are planned or dead.
 ---
 
 # Cameras
