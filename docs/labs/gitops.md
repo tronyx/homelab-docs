@@ -34,7 +34,7 @@ All eight VMs run Oracle Linux 9. Terraform builds them from a template. Each VM
 | `k8s-wrk-02` | Kubernetes worker | 8 | 16 GB | 150 GB | 192.168.1.204 |
 | `k8s-wrk-03` | Kubernetes worker | 8 | 16 GB | 150 GB | 192.168.1.205 |
 | `gitlab-01` | GitLab CE in Docker | 4 | 8 GB | 150 GB | 192.168.1.206 |
-| `ipa-01` | FreeIPA | 2 | 4 GB | 40 GB | 192.168.1.208 |
+| `ipa-01` | FreeIPA | 4 | 8 GB | 150 GB | 192.168.1.208 |
 
 A control plane node runs the Kubernetes management parts. A worker node runs the application workloads. The cluster also uses these addresses:
 
