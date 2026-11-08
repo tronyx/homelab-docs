@@ -255,6 +255,6 @@ If you want to build your own lab, these are the steps I would take again:
 
 1. Start with the hardware you have. An old PC or laptop is enough for a first server.
 2. Pick one service that you will use every day, such as a media server or a password manager. You learn more when you depend on it.
-3. Learn Docker and Docker Compose. Add one container at a time, and keep each Compose file.
-4. Write down what you build. Notes and diagrams like the ones on this site help you when something breaks.
+3. Learn Docker and Docker Compose. WunderTech's [Docker guides](https://www.wundertech.net/docker-guides/) start with the order the author would follow as a beginner, from the first container to updates and backups. Add one container at a time, and keep each Compose file.
+4. Write down what you build, while you build it. Something will break months from now, and notes and diagrams like the ones on this site save you hours of working out what you did before. Brandon Lee's [How to Document Your Home Lab](https://www.virtualizationhowto.com/2025/04/how-to-document-your-home-lab-the-right-way/) shows where to begin, from an inventory to diagrams. To turn your notes into a site like this one, try [Zensical](https://zensical.org/docs/get-started/), from the makers of Material for MkDocs, which this site uses. It has an official Docker image, so your notes site can be one of your first Compose stacks.
 5. Set up backups before you add more, and test a restore at least once.
