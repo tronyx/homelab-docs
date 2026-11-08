@@ -1,6 +1,6 @@
 ---
 title: Home
-description: How my homelab grew from one media server in a basement in 2010 to a 45U rack and a Kubernetes lab, and what it did for my career.
+description: How my homelab grew from external USB drives and a first file server in a basement to a 45U rack and a Kubernetes lab, and what it did for my career.
 hide:
   - navigation
   - toc
@@ -22,7 +22,7 @@ hide:
 
 </div>
 
-A homelab is a set of computers and network gear that a person runs at home, to learn and to host their own services. This site documents mine. It began in 2010 as one media server on old PC parts in my basement. Today it fills a 45U rack, with two ESXi hosts, two Unraid servers, dozens of Docker containers and a Kubernetes lab.
+A homelab is a set of computers and network gear that a person runs at home, to learn and to host their own services. This site documents mine. It began with movies and TV shows on external USB drives, and in 2010 with a first file server in my basement. Today it fills a 45U rack, with two ESXi hosts, two Unraid servers, dozens of Docker containers and a Kubernetes lab.
 
 If you are new to homelabs, I hope this page shows how far one old PC can take you. If you already run a lab, I hope you find an idea to take home.
 
@@ -44,12 +44,21 @@ I put a graphics card in the family computer so that I could play games better. 
 
 <div class="home-step" markdown>
 
+<span class="home-when">Before 2010</span>
+
+I kept my movies and TV shows on external USB drives on my Windows Vista PC. There was no media server: I watched the files with VLC and kept track of missing TV episodes by hand.
+
+![Windows Vista showing the drives for programs, anime and music, movies, TV shows and backups](overrides/assets/images/home/2010-drives.webp){ data-gallery="vista" data-title="My PC's drives, Windows Vista" loading=lazy }
+
+</div>
+
+<div class="home-step" markdown>
+
 <span class="home-when">2010</span>
 
-My first media server ran on old PC parts and a pile of external drives, on a workbench in the basement.
+My first file server ran Windows Server 2003 on the tower under the basement workbench.
 
-![The corner of the basement workbench in 2010](overrides/assets/images/home/2010-desk.webp){ data-gallery="2010" data-title="The workbench corner, 2010" loading=lazy }
-![Windows 7 showing six local drives and a network share on the file server](overrides/assets/images/home/2010-drives.webp){ data-gallery="2010" data-title="The file server drives, about 2010" loading=lazy }
+![The corner of the basement workbench in 2010, with the file server tower under the desk](overrides/assets/images/home/2010-desk.webp){ data-gallery="2010" data-title="The workbench corner, with the file server under the desk, 2010" loading=lazy }
 
 </div>
 
