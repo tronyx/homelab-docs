@@ -62,7 +62,7 @@ theme:
   name: material
   logo: overrides/assets/images/icons/icon.png
   favicon: overrides/assets/images/icons/favicon.png
-  custom_dir: docs/overrides
+  custom_dir: overrides
   font:
     text: DM Sans
     code: Fira Code
