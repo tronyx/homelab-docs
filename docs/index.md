@@ -20,7 +20,7 @@ hide:
 
 </div>
 
-For those who are not aware, a homelab is a set of computers and network gear that a person runs at home, to learn and to host their own services. This site documents mine. It began with movies and TV shows on external USB drives, and in 2010 with my first file server in my basement. Today it fills a 45U rack, with two ESXi hosts, two Unraid servers, dozens of Docker containers and a Kubernetes lab.
+For those who are not aware, a homelab is a set of computers and network gear that a person runs at home, to learn and to host their own services. This site documents mine. It began with media on external USB drives, and in 2010 with my first file server in my basement. Today it fills a 45U rack, with two ESXi hosts, two Unraid servers, dozens of Docker containers and a Kubernetes lab.
 
 If you are new to homelabs, I hope this page shows how far one old PC can take you. If you already run a lab, I hope you find an idea to take home.
 
@@ -44,9 +44,9 @@ When I was 14 years old, I put a graphics card in the family computer that I bou
 
 <span class="home-when">Before 2010</span>
 
-I kept my movies and TV shows on external USB drives on my Windows Vista PC. There was no media server: I watched the files with VLC and kept track of missing TV episodes by hand.
+I kept my media on external USB drives on my Windows Vista PC. There was no media server: I watched the files with VLC and kept track of missing TV episodes by hand.
 
-![Windows Vista showing the drives for programs, anime and music, movies, TV shows and backups](overrides/assets/images/home/2010-drives.webp){ data-gallery="vista" data-title="My PC's drives, Windows Vista" loading=lazy }
+![Windows Vista showing the drives for programs, media, and backups](overrides/assets/images/home/2010-drives.webp){ data-gallery="vista" data-title="My PC's drives, Windows Vista" loading=lazy }
 
 </div>
 
@@ -155,7 +155,7 @@ I earned Windows certifications through the ComputerTraining.com program. The pr
 
 <span class="home-when">2008 to 2014</span>
 
-**1&1 Internet** (now IONOS) · Web Hosting Support Specialist to Shift Supervisor
+**Major Web Hosting/Server Provider** · Web Hosting Support Specialist to Shift Supervisor
 
 I started in web hosting support and moved to the Dedicated Server Support Team, where I learned Linux and the basic administration of Servers. As Shift Supervisor, I led the third-shift team of second-level support representatives and coached them each month. I took their escalations and worked with the third- and fourth-level administrators to resolve them.
 
@@ -165,7 +165,7 @@ I started in web hosting support and moved to the Dedicated Server Support Team,
 
 <span class="home-when">2014 to 2017</span>
 
-**eBay Enterprise** · Command Center Administrator, then Lead
+**A Large Enterprise E-Commerce & Fulfillment Company** · Command Center Administrator, then Lead
 
 In a 24x7 Command Center, I monitored and supported the production systems for e-commerce applications and online stores for a lot of major brands, from alert triage to deployments and load tests. As the Lead from 2015, I supervised the releases to production, documented the incident procedures and trained the team. There I learned Nagios, Grafana, InfluxDB, CI/CD, basic Shell scripting, and even more about Linux Servers and about the importance of health checks and observability, which all run in my lab today.
 
@@ -175,7 +175,7 @@ In a 24x7 Command Center, I monitored and supported the production systems for e
 
 <span class="home-when">2017 to 2025</span>
 
-**Radial** (formerly eBay Enterprise) · DevOps Engineer, then Senior DevOps Engineer
+**A Large Enterprise E-Commerce & Fulfillment Company** · DevOps Engineer, then Senior DevOps Engineer
 
 I automated the path from development to production and created and ran the CI/CD pipelines and the configuration management platforms. As a Senior DevOps Engineer from 2019, I containerized applications, completely rebuilt the Elasticsearch, Logstash, and Kibana stack (39 Nodes, 2 billion documents, and nearly 100TB of data) and helped move them from on-premises servers to AWS and GitLab CI/CD. I also helped train and mentored the team to try and ensure that there were no education gaps.
 
@@ -195,9 +195,9 @@ I started my own IT consulting company. I designed and built the IT infrastructu
 
 <span class="home-when">2025 to 2026</span>
 
-**Iron Mountain** · Systems Engineer, then Senior Systems Engineer
+**A Very Large Government Solutions Imaging Company** · Systems Engineer, then Senior Systems Engineer
 
-I supported a local imaging center and the central systems of a government project, with on-call duty and strict service levels. I managed the FedRAMP Okta and Cisco Duo instances, the YubiKeys and the laptops for the project staff, and built a team Material for MkDocs site. As a Senior Systems Engineer, I ran the Windows servers and networks and the STIG and SCAP scans for audits.
+I supported a local imaging center and the central systems of multiple government project, with on-call duty and strict service levels. I managed the FedRAMP Okta and Cisco Duo instances, the YubiKeys and the laptops for the project staff, and built a team Material for MkDocs site. As a Senior Systems Engineer, I ran the Windows servers and networks and the STIG and SCAP scans for audits.
 
 </div>
 
@@ -205,9 +205,9 @@ I supported a local imaging center and the central systems of a government proje
 
 <span class="home-when">July 2026 to now</span>
 
-**CardConnect**, a Fiserv company · Senior Systems Engineer
+**A Global Fortune 500 Financial Technology & Payments Company** · Senior Systems Engineer
 
-A major payment processor and gateway services provider where I am part of the Infrastructure Team to maintain and enhance the backend systems. I work with (and am learning) GitOps, Terraform, Ansible, ArgoCD, Puppet, Kubernetes, VictoriaMetrics, Dynatrace, GOCD, and GitLab. This position is why I built the production-like GitOps Lab, so that I can practice at home with the same tools.
+I am part of the Operational Architecture & Infrastructure Team who is responsible for designing, implementing, and maintaining the backend systems. I work with (and am learning) GitOps, Terraform, Ansible, ArgoCD, Puppet, Kubernetes, VictoriaMetrics, Dynatrace, GOCD, and GitLab. This position is why I built the production-like GitOps Lab, so that I can practice at home with the same tools.
 
 </div>
 

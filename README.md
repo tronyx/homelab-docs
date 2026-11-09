@@ -12,7 +12,7 @@
 
 homelab-docs is the source of [Homelab Docs](https://docs.chrisyocum.com), the public documentation of my homelab. A homelab is a set of computers and network gear that a person runs at home, to learn and to host their own services.
 
-My lab started with movies and TV shows on external USB drives. Today it fills a 45U rack, with two ESXi hosts, two Unraid servers, dozens of Docker containers and a Kubernetes lab. The site explains how it all fits together, how I keep it up to date, and how it grew. I hope it helps you start a lab of your own, or gives you an idea for the one that you have.
+My lab started with my media on external USB drives. Today it fills a 45U rack, with two ESXi hosts, two Unraid servers, dozens of Docker containers and a Kubernetes lab. The site explains how it all fits together, how I keep it up to date, and how it grew. I hope it helps you start a lab of your own, or gives you an idea for the one that you have.
 
 ## ✨ What is on the site
 
