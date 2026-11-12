@@ -31,12 +31,12 @@ Each Unraid array uses two parity drives. With parity, the array can rebuild a f
 | vCenter | ReadyNAS 3138 | Automatic vCenter configuration backups | vCenter (broken at the moment) |
 | Storage | ReadyNAS 3138 | Miscellaneous files | Not a backup target |
 | PiHole_Backup | ReadyNAS 3138 | Not used any more | Nothing |
-| Media Backup | Gothmog | Copy of all Plex media from Morgoth | rsync on Gothmog, over NFS |
+| Media Backup | Gothmog | Copy of all Plex media from Morgoth | rclone on Gothmog, over NFS |
 
 ## Backup flows
 
 - Veeam on [Zog](servers.md#bolg) backs up my PC to Users, the VMs and the Plex Docker appdata to Server_Backup, and its own configuration to Veeam.
 - restic on Suladan makes a weekly backup of Suladan to Docker_Backup. Suladan mounts the share over NFS at `/mnt/docker_backup`.
-- Scripts in the Unraid User Scripts plugin on Gothmog copy all Plex media from Morgoth with rsync. Gothmog shares Media Backup over NFS, and Morgoth mounts it.
+- Scripts in the Unraid User Scripts plugin on Gothmog copy all Plex media from Morgoth with rclone, one script for each Plex library. When Sonarr, Radarr or a person renames a file on Morgoth, rclone renames the copy on Gothmog and copies nothing. Gothmog shares Media Backup over NFS, and Morgoth mounts it.
 - restic on the Cloud Server backs up the Cloud Server to Backblaze B2. B2 holds only this repository. The ReadyNAS no longer backs up to B2.
 - vCenter makes automatic configuration backups to the vCenter share. These backups are broken at the moment, and I plan to fix them.

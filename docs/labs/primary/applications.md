@@ -48,7 +48,6 @@ Komodo manages the stacks on Suladan.
 | --- | --- |
 | Autoscan | `autoscan` |
 | Bazarr | `bazarr` |
-| cross-seed | `cross-seed` |
 | Grafana | `Grafana` |
 | ImageMaid | `imagemaid` |
 | InfluxDB | `Influxdb` |
