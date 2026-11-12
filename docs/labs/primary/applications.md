@@ -33,7 +33,6 @@ Komodo manages the stacks on Suladan.
 | qui | `qui` |
 | Reality Curber | `reality-curber` |
 | Reaper | `reaper` |
-| Seerr | `overseerr` |
 | SMTP Relay | `smtp_relay` |
 | Sonarr Checker | `sonarr-checker` |
 | Sonarr Checker Anime | `sonarr-checker-anime` |
@@ -66,6 +65,7 @@ Komodo manages the stacks on Suladan.
 | Romaji Renamer | `romaji-renamer` |
 | SABnzbd | `sabnzbd` |
 | Scrutiny | `scrutiny` |
+| Seerr | `seerr` |
 | Sonarr | `sonarr` |
 | Sonarr 4K | `sonarr4k` |
 | Sonarr Anime | `sonarr-anime` |
