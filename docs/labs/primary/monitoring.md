@@ -136,6 +136,7 @@ A test makes sure that each dashboard file is exactly what its generator writes.
 - **Compare two databases with a fixed window.** For two days, each Telegraf wrote to the old and the new database. To compare them, I used one window in the past, the same on both sides, with its end between two reads.
 - **Put the host name check into each command block.** I once ran a block for one server on another server. Now each block that installs a file stops on the wrong machine.
 - **Copy results that exist.** The speed test script only copies the results that Netronome already made. It does not start a test, so it puts no load on the line.
+- **Anonymous access in Grafana gives more than a view of the dashboards.** My Grafana had anonymous access on, so that a visitor did not have to sign in. Such a visitor gets the Viewer role, and a Viewer can send any query to a data source. My Grafana also had a public name. So any person on the internet was able to read all my metrics, not only the panels that I made. A test query without a sign-in returned data. Now anonymous access is off, and each person signs in. To show one dashboard to a person without an account, Grafana has externally shared dashboards. Such a link runs only the queries that are stored on the dashboard.
 
 ## What is missing
 
