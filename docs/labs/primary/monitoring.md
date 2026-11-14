@@ -140,6 +140,6 @@ A test makes sure that each dashboard file is exactly what its generator writes.
 
 ## What is missing
 
-- No alert exists. A dashboard shows a problem only to a person who looks at it.
+- Grafana sends no alert. My alerts come from other tools. Nagios, Healthchecks and Uptime Kuma send them. So do the Unraid servers, through a Discord server, and each appliance and UPS, by e-mail. A dashboard is the place to look at the details after a message.
 - The database and Grafana are on one server. If that server is down, no system can store its metrics.
 - The data starts in November 2026. I did not keep the data of the old database.
