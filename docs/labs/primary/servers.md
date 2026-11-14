@@ -51,7 +51,7 @@ Morgoth is the primary Unraid server. It runs Unraid OS and Docker, and it holds
 - Network: 10 Gb NIC (fiber)
 - HBA: LSI 9300-8i 12 Gbps controller in IT mode
 
-The drives of Morgoth are in [Unraid arrays](storage-and-backups.md#unraid-arrays).
+The drives of Morgoth are in [Unraid arrays](storage-and-backups.md#unraid-arrays). Morgoth also runs the metrics database and Grafana. See [Monitoring](monitoring.md).
 
 ## Gothmog
 
@@ -70,7 +70,7 @@ The drives of Gothmog are in [Unraid arrays](storage-and-backups.md#unraid-array
 
 ## ReadyNAS 3138
 
-The ReadyNAS 3138 is the backup target for Veeam and restic. It has 4x 8 TB WD Red drives. Its shares are in [Storage and backups](storage-and-backups.md#shares).
+The ReadyNAS 3138 is the backup target for Veeam and restic. It has 4x 8 TB WD Red drives. Its shares are in [Storage and backups](storage-and-backups.md#shares). Telegraf runs on the NAS and reports its drives, arrays and fans.
 
 ## Unifi NVR
 

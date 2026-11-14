@@ -1,11 +1,11 @@
 ---
 title: Primary Lab
-description: My home lab on one diagram, with pages for the network, servers, applications, cameras, storage, backups, rack and power.
+description: My home lab on one diagram, with pages for the network, servers, applications, monitoring, cameras, storage, backups, rack and power.
 ---
 
 # Primary Lab
 
-The Primary Lab is my home lab. It runs the media server, home automation, monitoring and backups for my house. A rented VPS outside the house runs the services that must stay up when the lab is down. These pages explain the lab around one diagram, which shows the lab on November 7, 2026.
+The Primary Lab is my home lab. It runs the media server, home automation, monitoring and backups for my house. A rented VPS outside the house runs the services that must stay up when the lab is down. These pages explain the lab around one diagram, which shows the lab on November 14, 2026.
 
 ## The diagram
 
@@ -18,6 +18,7 @@ Select the diagram to open it full screen. The full-screen version is an SVG fil
 - [Network](network.md): the internet link, switches, VLANs, cables, VPNs, Wi-Fi, client devices and addresses.
 - [Servers](servers.md): the physical servers, the VMs and the Cloud Server, with roles and hardware.
 - [Applications](applications.md): the Docker containers on each host, and how they get their updates.
+- [Monitoring](monitoring.md): how the lab collects its metrics, stores them and shows them on dashboards.
 - [Cameras](cameras.md): the Unifi Protect cameras, with models and states.
 - [Storage and backups](storage-and-backups.md): the Unraid arrays, the ReadyNAS shares and the backup flows.
 - [Rack and power](rack-and-power.md): the 45U rack and the map from each UPS to its devices.

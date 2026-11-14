@@ -40,6 +40,7 @@ Komodo manages the stacks on Suladan.
 | Tautulli | `tautulli` |
 | Tdarr Server | `tdarr-server` |
 | Tracearr | `tracearr`, `tracearr-redis`, `tracearr-timescaledb` |
+| UnPoller | `unpoller` |
 
 ## Morgoth
 
@@ -49,12 +50,11 @@ Komodo manages the stacks on Suladan.
 | Bazarr | `bazarr` |
 | Grafana | `Grafana` |
 | ImageMaid | `imagemaid` |
-| InfluxDB | `Influxdb` |
+| InfluxDB 3 | `influxdb3` |
 | Intel GPU Telegraf | `intel-gpu-telegraf` |
 | Kometa | `kometa` |
 | Lidarr | `lidarr` |
 | Notifiarr | `Notifiarr` |
-| NUT InfluxDB Exporter | `nut-influxdb-exporter` |
 | Plex | `plex` |
 | Plex Auto Languages | `plex-auto-languages` |
 | Prowlarr | `prowlarr` |
@@ -72,13 +72,14 @@ Komodo manages the stacks on Suladan.
 | Telegraf | `telegraf` |
 | Unpackerr | `unpackerr` |
 
+InfluxDB 3, Grafana and the two Telegraf containers are the metrics stack. See [Monitoring](monitoring.md).
+
 Three of these containers are jobs, not services. A script in the Unraid User Scripts plugin starts Kometa and Romaji Renamer as one stack on a cron schedule. I run ImageMaid by hand when it is necessary.
 
 ## Gothmog
 
 | Application | Containers |
 | --- | --- |
-| NUT InfluxDB Exporter | `nut-influxdb-exporter` |
 | Scrutiny | `scrutiny` |
 | Telegraf | `telegraf` |
 

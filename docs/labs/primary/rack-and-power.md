@@ -54,3 +54,5 @@ Four UPS units power the lab. Three of them feed a PDU each. Morgoth and Bolg ha
 | CyberPower CP1500 | No PDU | ReadyNAS 3138 only |
 
 The ReadyNAS monitors the CyberPower UPS over USB and shuts itself down. The APC PowerChute Network Shutdown VM on [Bolg](servers.md#bolg) is the shutdown agent for the APC UPS.
+
+Telegraf reads the Eaton, the APC and the CyberPower through NUT, the UPS service. The UPS and Power dashboards show the figures. See [Monitoring](monitoring.md).
