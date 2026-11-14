@@ -94,6 +94,19 @@ Each query is InfluxQL. InfluxDB 3 also accepts SQL.
 
 No dashboard names a system in a query. Each one reads the systems from the database and offers them in a dropdown. A new system shows on the dashboards when its Telegraf starts to write.
 
+### Pictures
+
+These pictures show the top part of five dashboards on November 14, 2026. Select a picture to open it at full size. A grey box covers a name that I do not show.
+
+![The Overview dashboard. A table has one row for each system, with status, last seen, CPU, memory, fullest disk, containers, load and uptime. A second table has one row for each UPS, with status, load, power, runtime and battery.](../../overrides/assets/images/lab/dashboard-overview.webp){ data-gallery="dashboards" data-title="Overview: one row for each system and each UPS" loading=lazy }
+
+The last row of the Systems table is not a server that failed. It is the Cloud Server with its old host name. On the day before this picture, I changed the name that its Telegraf sends. The first row is the same server with its new name. The dashboard reads its list of systems from the data. So it shows the old name as "Down" until the old data is outside the time range, which is 24 hours here.
+
+![The Host dashboard for Morgoth. A row of tiles shows uptime, CPU, memory, load, CPU threads, running containers and the fullest filesystem. Two graphs show the CPU use in total and for each core.](../../overrides/assets/images/lab/dashboard-host.webp){ data-gallery="dashboards" data-title="Host: the summary and the CPU of one system" loading=lazy }
+![The Internet dashboard. Tiles show download and upload speed, the time of the last test, latency, jitter, packet loss and DNS time. Graphs show the speed and the latency of one day, and a table lists each speed test.](../../overrides/assets/images/lab/dashboard-internet.webp){ data-gallery="dashboards" data-title="Internet: speed, latency and each speed test" loading=lazy }
+![The Power dashboard. Tiles show the total power and the power of each UPS. More tiles show the energy and the cost for today and this month. The last tiles show a projection for a month and a year.](../../overrides/assets/images/lab/dashboard-power.webp){ data-gallery="dashboards" data-title="Power: all UPS units together, with energy and cost" loading=lazy }
+![The UniFi dashboard. Tiles show the age of the data, devices online and offline, firmware updates, clients, throughput and the state of the gateway. Graphs show the internet throughput, the delay to test targets and the load of the gateway.](../../overrides/assets/images/lab/dashboard-unifi.webp){ data-gallery="dashboards" data-title="UniFi: the overview and the gateway" loading=lazy }
+
 ## The dashboards are generated
 
 I do not build a dashboard by hand in Grafana. A Python program writes each dashboard file.
@@ -114,6 +127,7 @@ A test makes sure that each dashboard file is exactly what its generator writes.
 - **Stale data can look alive.** If the UniFi controller does not answer, UnPoller repeats its last figures. The graphs then look normal. A tile with the age of the data is the only sign.
 - **A count of zero can mean "no data".** A tile that counts problems shows zero when its input stops. I put a second tile beside it that counts the items that report.
 - **Give each dropdown query a time filter.** A dropdown that lists the systems has `WHERE $timeFilter` in its query. Without it, a system that I removed stays in the list until the retention removes its data.
+- **A renamed system looks like a failed system.** I changed the host name that one Telegraf sends. For one day, the Overview dashboard showed the old name as "Down" beside the new name. See the first picture in [The dashboards](#pictures). The time filter of the rule above limits this to the time range. Without it, the old name stays until the retention removes its data.
 - **The Telegraf image has no SMART tools.** My Telegraf containers install `smartmontools` and `nvme-cli` at each start. A start without the internet fails, which is a weak point.
 - **Compare two databases with a fixed window.** For two days, each Telegraf wrote to the old and the new database. To compare them, I used one window in the past, the same on both sides, with its end between two reads.
 - **Put the host name check into each command block.** I once ran a block for one server on another server. Now each block that installs a file stops on the wrong machine.
