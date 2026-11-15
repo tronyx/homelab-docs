@@ -80,10 +80,9 @@ theme:
     - navigation.instant
     - navigation.instant.prefetch
     - navigation.instant.progress
-    - navigation.sections
     - navigation.tabs
     - navigation.tabs.sticky
-    - navivation.top
+    - navigation.top
     - navigation.tracking
     - navigation.footer
     - navigation.path
@@ -129,16 +128,20 @@ nav:
       - labs/primary/rack-and-power.md
     - Automated Docker Updates:
       - labs/docker-updates/index.md
-      - labs/docker-updates/prerequisites.md
-      - labs/docker-updates/backup.md
-      - labs/docker-updates/komodo.md
-      - labs/docker-updates/move-stacks.md
-      - labs/docker-updates/critical-stacks.md
-      - labs/docker-updates/webhooks.md
-      - labs/docker-updates/renovate.md
-      - labs/docker-updates/daily-use.md
-      - labs/docker-updates/backups.md
-      - labs/docker-updates/lessons.md
-      - labs/docker-updates/scripts.md
+      - Setup:
+        - labs/docker-updates/prerequisites.md
+        - labs/docker-updates/backup.md
+        - labs/docker-updates/komodo.md
+      - Migration:
+        - labs/docker-updates/move-stacks.md
+        - labs/docker-updates/critical-stacks.md
+      - Running:
+        - labs/docker-updates/webhooks.md
+        - labs/docker-updates/renovate.md
+        - labs/docker-updates/daily-use.md
+        - labs/docker-updates/backups.md
+      - Reference:
+        - labs/docker-updates/lessons.md
+        - labs/docker-updates/scripts.md
   - GITOPS LAB:
     - Production-Like GitOps Lab: labs/gitops.md
