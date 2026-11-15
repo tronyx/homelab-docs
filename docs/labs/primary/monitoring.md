@@ -49,8 +49,7 @@ These are the versions on November 14, 2026.
 | Program | Version | Where |
 | --- | --- | --- |
 | InfluxDB 3 Enterprise | 3.12.2 | A container on Morgoth, from the image `influxdb:3.12.2-enterprise` |
-| Telegraf | 1.40.3 | Containers on Morgoth and Gothmog from the image `telegraf:1.40.3-alpine`, a package on Suladan, a Windows service on Zog, and the release archive on the ReadyNAS |
-| Telegraf | 1.35.3 | A package on the Cloud Server |
+| Telegraf | 1.40.3 | Containers on Morgoth and Gothmog from the image `telegraf:1.40.3-alpine`, a package on Suladan and on the Cloud Server, a Windows service on Zog, and the release archive on the ReadyNAS |
 | Telegraf | 1.21.4 | The package of Ubuntu on the PiHole |
 | Grafana | 13.3.1 | A container on Morgoth |
 | UnPoller | 5.9.5 | A container on Suladan |
