@@ -227,4 +227,5 @@ Komodo does not deploy itself. After you merge a `komodo` pull request:
     cd /root/<your-repo> && git pull && docker compose -f komodo/periphery-server-b/docker-compose.yml up -d
     ```
 
-4. In Komodo, both servers must show the status OK.
+4. On an Unraid server, copy the new Periphery file and start it, as in [Unraid servers](unraid.md#connect-server-c).
+5. In Komodo, every server must show the status OK.

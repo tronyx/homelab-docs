@@ -51,6 +51,8 @@ A merge for a critical stack deploys nothing until you click Deploy. If you forg
 4. If a line starts with `MISSING` or `NOT RUNNING`, open the Stack in Komodo and read the log of the container.
 5. If a line starts with `NOT IN ANY FILE`, a container exists that no file describes. Find out who started it, and add it to a stack file or remove it.
 
+`check_images.py` needs Python and the server's clone. On an Unraid server without them, it cannot run (see [Unraid servers](unraid.md)).
+
 ## Roll back an update
 
 A revert of the merge on `main` is the rollback. The webhook then deploys the old image again. A merge commit has two parents, so the revert needs `-m 1`, which keeps the side of `main` from before the merge. If you merged with squash or rebase instead, revert that one commit without `-m 1`.
@@ -86,6 +88,7 @@ On its next run, Renovate opens the same update again, because `main` has the ol
 ## Keep it healthy
 
 - After a reboot or a Docker update, follow [Reboots and Docker updates](critical-stacks.md#reboots-and-docker-updates).
+- After a restart of an Unraid server, start its Stacks in Komodo, as in [After a restart of the server](unraid.md#after-a-restart-of-the-server).
 - A database major upgrade is never a Renovate merge. Plan it. Dump the database with `pg_dumpall` or `mariadb-dump`, and restore the dump into a temporary container on a new data folder. Compare the table and row counts of both. Only then, change the stack file to the new image and folder. Keep the old folder as the rollback.
 - A new major version of Forgejo is a Renovate pull request for a critical stack. Read the breaking changes in its release notes first. Then, before the Deploy, run `forgejo manager flush-queues` as the user `git` in the container. Stop `forgejo` (not its database), dump the database and copy the data folder. Start `forgejo` again, because the Deploy pulls from it. Click Deploy: Forgejo runs its database migrations at the first start. Run `forgejo doctor check --all` as the user `git`. After the migrations, an older Forgejo does not start on that database, so the way back is a restore of both backups, not a revert.
 - Look at the Dependency Dashboard from time to time. It lists the pending updates and any image that Renovate failed to look up. Updates that a rule turns off, such as database majors, do not appear there, so watch the release notes of your databases yourself.

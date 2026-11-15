@@ -11,10 +11,13 @@ After this part, a push to `main` deploys the changed stacks by itself. Each ser
 
 Do these steps in Komodo, for each server.
 
+!!! warning "Create a Procedure only after the first Deploy"
+    Create the Procedure of a server only after the first Deploy of each Stack in its pattern. A Stack that never deployed can count as changed. A push can then create its containers a second time, next to the running ones.
+
 1. Open Procedures and create a Procedure named `deploy-changed-server-a`.
 2. Add one stage. Set its execution to `BatchDeployStackIfChanged`.
 3. Set the pattern of the stage to the names of the normal Stacks of that server, separated by commas, for example `server-a-media, server-a-monitoring, server-a-dns`. Name each Stack. Do not use a wildcard, so that the pattern can never match a critical stack.
-4. Click Save. A stage that you add or change has no effect until you save the Procedure.
+4. Click Save. A stage that you add or change has no effect until you save the Procedure. After the save, the header of the Procedure shows `1 STAGE`. A Procedure saved with `0 STAGES` runs without an error but deploys nothing.
 5. Open the webhook section of the Procedure, and turn the webhook on for the branch `main`. Copy the webhook URL that Komodo shows. It has the form `https://<komodo-host>/listener/github/procedure/<procedure-id>/main`.
 
 ![The Procedure deploy-changed-server-a in Komodo, with one stage that runs Batch Deploy Stack If Changed on six named Stacks](../../overrides/assets/images/docker-updates/komodo-procedure.png)
@@ -28,7 +31,7 @@ The stage of the Procedure for `server-a`. The target names each normal Stack.
 The webhook section of the same Procedure. The button next to the URL copies it.
 ///
 
-The Procedure pulls the Repo itself before it compares, so after a merge you do not click Pull. When you add a stack to Komodo later, add its name to the pattern of the Procedure for its server, and click Save.
+The Procedure pulls the Repo itself before it compares, so after a merge you do not click Pull. When you add a stack to Komodo later, deploy it once first. Then add its name to the pattern of the Procedure for its server, and click Save.
 
 ## Turn off the other webhooks and schedules
 
@@ -58,7 +61,7 @@ Komodo uses its `github` listener for Forgejo, because Forgejo signs each call i
 | Change on `main` | Result |
 | --- | --- |
 | A stack in a Procedure changed | Komodo deploys that stack. Compose recreates only the services whose configuration changed. A change to a comment restarts nothing. |
-| Stacks on both servers changed | Each Procedure deploys the changed stacks of its own server. |
+| Stacks on several servers changed | Each Procedure deploys the changed stacks of its own server. |
 | A critical stack changed | Nothing deploys. Komodo shows the stack as changed. Review the change, then click Deploy on the Stack. |
 | No stack changed | Nothing deploys. |
 
@@ -68,7 +71,7 @@ A push to any other branch does nothing. The branch filter in Forgejo stops the 
 
 1. Push a commit that changes only a comment in one normal stack file.
 2. In Forgejo, open the webhook. The newest delivery must have a green check. Test delivery sends the newest commit on `main` again, so it deploys nothing new.
-3. In Komodo, open the Procedure. The delivery must start one run. The log lists every stack of the pattern. A stack that Komodo deploys takes a few seconds, and a stack with no change takes less than a second. The run must end with `The procedure has completed with no errors`.
+3. In Komodo, open the Procedure. The delivery must start one run. The log lists every stack of the pattern. A stack that Komodo deploys takes a few seconds, and a stack with no change takes less than a second. The run must end with `The procedure has completed with no errors`. If the log shows only `executing procedure` and that line, and names no stack, the Procedure has no stage. Add the stage, click Save, and click Test delivery on the webhook in Forgejo.
 4. On `server-a`, show the newest webhook calls in the SWAG log. Each line must show `<server-b-public-ip>` and the status `200`:
 
     ```bash

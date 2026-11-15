@@ -135,6 +135,7 @@ nav:
       - Migration:
         - labs/docker-updates/move-stacks.md
         - labs/docker-updates/critical-stacks.md
+        - labs/docker-updates/unraid.md
       - Running:
         - labs/docker-updates/webhooks.md
         - labs/docker-updates/renovate.md

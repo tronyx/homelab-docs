@@ -66,7 +66,7 @@ Gothmog is the backup Unraid server. It runs Unraid OS and Docker, and it keeps 
 - HBA: LSI 9201-16e 6 Gbps controller in IT mode, for the drives in the DAS
 - Expander: Intel RES2SV240 24-port RAID expander
 
-The drives of Gothmog are in [Unraid arrays](storage-and-backups.md#unraid-arrays).
+The drives of Gothmog are in [Unraid arrays](storage-and-backups.md#unraid-arrays). Komodo manages its stack. Its containers are in [Applications](applications.md#gothmog).
 
 ## ReadyNAS 3138
 

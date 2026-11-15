@@ -1,13 +1,13 @@
 ---
 title: Scripts
-description: The seven scripts and the configuration files of the Docker update setup, in full, with what each one is for.
+description: The seven scripts, the two Unraid scripts and the configuration files of the Docker update setup, in full, with what each one is for.
 ---
 
 # Scripts
 
 Copy these files into your repository, at the paths in their titles. Each block opens with a click, and the button at its top right copies the whole file.
 
-The seven scripts are general, and they hold no names of their own. They read the names of your servers from the stack maps, and `backup_stacks.py` reads them from its configuration file. Each one explains itself at the top of the file. They need Python 3.9 or later and bash, and `backup_stacks.py` also needs restic.
+The seven scripts are general, and they hold no names of their own. They read the names of your servers from the stack maps, and `backup_stacks.py` reads them from its configuration file. Each one explains itself at the top of the file. They need Python 3.9 or later and bash, and `backup_stacks.py` also needs restic. Two more scripts are for Unraid servers only, in [The Unraid scripts](#the-unraid-scripts).
 
 ## The scripts
 
@@ -2901,6 +2901,214 @@ Backs up every Compose stack of a server with restic, one stopped stack at a tim
         sys.exit(main())
     ```
 
+## The Unraid scripts
+
+These two scripts are for an Unraid server, as [Unraid servers](unraid.md) describes. Each one runs as a User Script. They need bash, and `check_compose.sh` also needs `curl`. Replace `<appdata>` in `install_compose.sh` with your own folder.
+
+Installs the pinned Compose plugin from the tools folder of the server at each start of the array.
+
+??? example "tools/install_compose.sh"
+
+    ```bash
+    #!/bin/bash
+    # install_compose.sh: install the pinned Docker Compose plugin from the tools folder of an Unraid server.
+    #
+    # Unraid keeps /usr/local in RAM, so the plugin is gone after each restart. This script runs as a
+    # User Script "At Startup of Array" and copies the plugin back. It needs no internet. The file and
+    # its checksum are in the compose folder of the tools of the server:
+    #
+    #   <appdata>/tools/compose
+    #
+    #   docker-compose          the file docker-compose-linux-x86_64 of one release of docker/compose
+    #   docker-compose.sha256   its SHA256 checksum as the first word of the first line
+    #
+    # TOOL_DIRS can list more than one folder, so that the same text works on several servers. The
+    # script takes the first folder of the list that has the plugin. A disk can be mounted after the
+    # script starts, so it looks again every 10 seconds, for up to 5 minutes.
+    #
+    # It installs the file only if the checksum matches, so a damaged copy is never installed and the
+    # plugin that runs stays in place. A new version comes only when you put a new file and its
+    # checksum into the folder. check_compose.sh tells you when a new version is out.
+    #
+    # Exit code 0: installed. 1: the checksum does not match, or the install failed. 2: a file is missing.
+
+    TOOL_DIRS="${COMPOSE_TOOL_DIRS:-<appdata>/tools/compose}"
+    WAIT_SECONDS="${COMPOSE_WAIT_SECONDS:-300}"
+    WAIT_STEP=10
+    PLUGIN_DIR="${COMPOSE_PLUGIN_DIR:-/usr/local/lib/docker/cli-plugins}"
+
+    # find_dir: print the first folder of TOOL_DIRS that has the plugin.
+    find_dir() {
+      local dir
+      for dir in $TOOL_DIRS; do
+        if [ -f "$dir/docker-compose" ]; then
+          printf '%s' "$dir"
+          return 0
+        fi
+      done
+      return 1
+    }
+
+    main() {
+      local dir src sum expected actual waited=0
+      until dir=$(find_dir); do
+        if [ "$waited" -ge "$WAIT_SECONDS" ]; then
+          echo "install_compose: docker-compose not found in $TOOL_DIRS after $waited seconds. Nothing installed." >&2
+          return 2
+        fi
+        sleep "$WAIT_STEP"
+        waited=$((waited + WAIT_STEP))
+      done
+      src="$dir/docker-compose"
+      sum="$dir/docker-compose.sha256"
+      if [ ! -f "$sum" ]; then
+        echo "install_compose: $sum is missing. Nothing installed." >&2
+        return 2
+      fi
+      read -r expected _ < "$sum"
+      expected="${expected,,}"
+      actual=$(sha256sum "$src" | cut -d' ' -f1)
+      if [ "$expected" != "$actual" ]; then
+        echo "install_compose: the checksum of $src does not match $sum. Nothing installed." >&2
+        return 1
+      fi
+      # A copy beside the target and then a rename, so a failed copy never leaves half a plugin.
+      mkdir -p "$PLUGIN_DIR" || return 1
+      install -m 755 "$src" "$PLUGIN_DIR/.docker-compose.new" || return 1
+      mv -f "$PLUGIN_DIR/.docker-compose.new" "$PLUGIN_DIR/docker-compose" || return 1
+      echo "install_compose: installed from $dir: $(docker compose version 2>&1 | head -n 1)"
+      return 0
+    }
+
+    main "$@"
+    ```
+
+Sends a Discord message while Compose has a newer release than the one installed. The webhook address is in its configuration file on the flash drive.
+
+??? example "tools/check_compose.sh"
+
+    ```bash
+    #!/bin/bash
+    # check_compose.sh: tell a Discord channel when Docker Compose has a newer release than the one installed.
+    #
+    # For the Unraid servers, as a User Script on a schedule. The plugin comes from a pinned file in the
+    # tools folder of the server (install_compose.sh), so it never updates by itself. This check is the reminder.
+    #
+    # What a run does:
+    #
+    #   1. It reads the config file. Without a webhook address, it stops with the exit code 2.
+    #   2. It asks `docker compose version --short` for the installed version.
+    #   3. It asks GitHub for the newest release. releases/latest has no pre-release and no draft. If
+    #      GitHub does not answer, or the answer has no version, the run stops with the exit code 1 and
+    #      sends no message. The next run tries again.
+    #   4. If the newest release is newer than the installed version, or Compose is not installed, it
+    #      sends one message. The message comes again at each run until the new version is installed.
+    #      It also says when the first number of the version changes.
+    #
+    # Config: check-compose.conf in /boot/config/plugins/compose, on the flash drive. It stays
+    # after a restart, and only root can read it. KEY=VALUE lines. The file is read, not run.
+    #
+    #   DISCORD_WEBHOOK_URL   the address of the webhook. Necessary. The script holds no address and prints none.
+    #   DISCORD_MENTION       a text at the start of the message, for example the mention of a user
+    #
+    # Exit code 0: the check ran. 1: GitHub did not answer, or the message was not sent. 2: no webhook address.
+
+    FLASH_DIR="${COMPOSE_FLASH_DIR:-/boot/config/plugins/compose}"
+    CONF="$FLASH_DIR/check-compose.conf"
+    RELEASES="https://api.github.com/repos/docker/compose/releases"
+
+    DISCORD_WEBHOOK_URL=""
+    DISCORD_MENTION=""
+
+    # read_conf: take the known keys from the config file. Nothing in the file is run.
+    read_conf() {
+      local key value
+      [ -r "$CONF" ] || return 1
+      while IFS='=' read -r key value || [ -n "$key" ]; do
+        value="${value%$'\r'}"
+        case "$value" in
+          \"*\") value="${value#\"}"; value="${value%\"}" ;;
+          \'*\') value="${value#\'}"; value="${value%\'}" ;;
+        esac
+        case "$key" in
+          DISCORD_WEBHOOK_URL) DISCORD_WEBHOOK_URL="$value" ;;
+          DISCORD_MENTION) DISCORD_MENTION="$value" ;;
+        esac
+      done < "$CONF"
+      return 0
+    }
+
+    # json_text: a text as the inside of a JSON string.
+    json_text() {
+      local s="$1"
+      s="${s//\\/\\\\}"
+      s="${s//\"/\\\"}"
+      s="${s//$'\n'/\\n}"
+      s="${s//$'\t'/ }"
+      s="${s//$'\r'/}"
+      printf '%s' "$s"
+    }
+
+    # send: one message to the webhook. True only if Discord took it.
+    send() {
+      local code
+      code=$(curl -sS --max-time 15 --retry 2 -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
+        -X POST -d "{\"content\": \"$(json_text "$1")\"}" "$DISCORD_WEBHOOK_URL" 2>/dev/null) || return 1
+      case "$code" in 2??) return 0 ;; esac
+      return 1
+    }
+
+    # plain_version: "v5.7.1" or "5.7.1" becomes "5.7.1". Anything else becomes "".
+    plain_version() {
+      local v="${1#v}"
+      [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && printf '%s' "$v"
+    }
+
+    # newer: true if version $2 is newer than version $1, compared as numbers.
+    newer() {
+      [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n 1)" = "$2" ]
+    }
+
+    main() {
+      local host installed newest body text
+      if ! read_conf || [ -z "$DISCORD_WEBHOOK_URL" ]; then
+        echo "check_compose: no webhook address. Put DISCORD_WEBHOOK_URL into $CONF" >&2
+        return 2
+      fi
+      host="$(hostname -s 2>/dev/null || hostname)"
+      installed=$(plain_version "$(timeout 30 docker compose version --short 2>/dev/null | head -n 1)")
+
+      body=$(curl -fsS --max-time 20 --retry 2 -H 'Accept: application/vnd.github+json' "$RELEASES/latest" 2>/dev/null)
+      newest=$(plain_version "$(printf '%s\n' "$body" | sed -n 's/^ *"tag_name": *"\([^"]*\)".*/\1/p' | head -n 1)")
+      if [ -z "$newest" ]; then
+        echo "check_compose: GitHub did not answer with a version. No message. The next run tries again." >&2
+        return 1
+      fi
+
+      if [ -z "$installed" ]; then
+        text="Docker Compose is not installed. The newest release is $newest."
+      elif newer "$installed" "$newest"; then
+        text="Docker Compose $newest is out. Installed: $installed."
+        if [ "${installed%%.*}" != "${newest%%.*}" ]; then
+          text+=$'\n'"The first number of the version changes from ${installed%%.*} to ${newest%%.*}. Read the release notes before the install."
+        fi
+      else
+        echo "check_compose: $installed is the newest release."
+        return 0
+      fi
+      text+=$'\n'"Release notes: https://github.com/docker/compose/releases/tag/v$newest"
+
+      if send "${DISCORD_MENTION:+$DISCORD_MENTION - }$host"$'\n'"$text"; then
+        echo "check_compose: message sent. Installed: ${installed:-none}, newest: $newest."
+        return 0
+      fi
+      echo "check_compose: the message was not sent. Installed: ${installed:-none}, newest: $newest." >&2
+      return 1
+    }
+
+    main "$@"
+    ```
+
 ## The stack map and the pins
 
 `split_stacks.py` reads two files for each server. [Move the stacks](move-stacks.md#write-the-stack-map) explains each key of the map, and [Back up and record](backup.md#pin-the-images) explains how to write the pins.
@@ -3147,6 +3355,53 @@ The Periphery of `server-b`, which connects out to Core through the restricted r
           - /home/komodo/periphery:/home/komodo/periphery
           # Compose runs in this container, so stacks read env files here.
           - /home/.env_files:/home/.env_files:ro
+    ```
+
+The Periphery of an Unraid server, which connects to Core directly on the LAN. Replace `<appdata>` and `<server-a-lan-ip>` with your values, and set `TZ` to your time zone.
+
+??? example "komodo/periphery-server-c/docker-compose.yml"
+
+    ```yaml
+    name: komodo-periphery
+
+    # Start this project by hand on server-c. Komodo never manages it. Compose is
+    # the pinned plugin of install_compose.sh, so `docker compose` works:
+    #
+    #   docker compose -f <appdata>/komodo/docker-compose.yml up -d
+    #
+    # server-c is an Unraid server, and its other containers do not start by
+    # themselves. Periphery is the exception: it starts no other container, and
+    # each stack is then started by hand in Komodo.
+
+    services:
+      periphery:
+        container_name: komodo-periphery
+        image: ghcr.io/moghtech/komodo-periphery:2.3.4@sha256:fb4b52961fcce7a31e3776930e422967b6640f653de876f59f26dea243e29beb
+        labels:
+          komodo.skip: # Prevent Komodo from stopping with StopAllContainers
+          net.unraid.docker.icon: "https://raw.githubusercontent.com/moghtech/komodo/main/docsite/static/img/komodo-512x512.png"
+        init: true
+        restart: unless-stopped
+        # Holds the onboarding key for the first connection only.
+        env_file:
+          - <appdata>/.env_files/.komodo-periphery.env
+        environment:
+          TZ: Etc/UTC
+          # Core on server-a, directly on the LAN. The restricted route of SWAG
+          # lets only server-b use /ws/periphery.
+          PERIPHERY_CORE_ADDRESS: ws://<server-a-lan-ip>:9120
+          PERIPHERY_CONNECT_AS: server-c
+          PERIPHERY_CORE_PUBLIC_KEYS: file:/config/keys/core.pub
+          PERIPHERY_ROOT_DIRECTORY: <appdata>/komodo/periphery
+          PERIPHERY_INCLUDE_DISK_MOUNTS: <appdata>/komodo/periphery
+        volumes:
+          - <appdata>/komodo/keys:/config/keys
+          - /var/run/docker.sock:/var/run/docker.sock
+          - /proc:/proc
+          # The root directory must have the same path inside and outside.
+          - <appdata>/komodo/periphery:<appdata>/komodo/periphery
+          # Compose runs in this container, so stacks read env files here.
+          - <appdata>/.env_files:<appdata>/.env_files:ro
     ```
 
 The restricted route on `server-a`. Replace the placeholders with your values.

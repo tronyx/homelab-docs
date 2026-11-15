@@ -40,6 +40,12 @@ The first Komodo Deploy of a stack that you started by hand can recreate every c
 
 A pull or a registry lookup fails with `429 Too Many Requests`. Docker Hub limits anonymous requests for each public IP address, and all hosts behind one router share it. Log in with a read-only Docker Hub token on the host, and add the same account as a registry in Komodo. Then wait, or use another host for lookups.
 
+### An application keeps its data inside the container
+
+A new container of an application starts without its settings and its history. The old container mounted a folder at a path that the image does not use. So the application wrote its data inside the container, and each new container started empty. In my lab, Scrutiny had only the bind of an old template (`/config`), but the image keeps its data under `/opt/scrutiny`.
+
+Compare the mounts of the container with the data folders of the application. Before you remove the container, stop it, and copy the data out with `docker cp`. Then bind those folders in the stack file. The copy can need more disk space than `du` inside the container shows. In my move, 19 MB in the container became 147 MB on the disk, most likely because of sparse files.
+
 ## Komodo
 
 ### A secret disappears after a #
@@ -57,6 +63,14 @@ A Deploy fails because Compose cannot find an env file that exists on the host. 
 ### Critical stacks cannot deploy themselves
 
 The Deploy of the proxy or of Forgejo fails at the Git pull while that stack is down, because the pull goes through them. Start them with a direct `docker compose -p <stack> up -d` from Komodo's clone, then Deploy, as in [Critical stacks and recovery](critical-stacks.md).
+
+### A Procedure with no stage deploys nothing
+
+A Procedure runs after a push, but no stack deploys. Its log shows only `executing procedure` and `The procedure has completed with no errors`. The Procedure was saved with no stage, and its header shows `0 STAGES`. A run with a stage names each stack of the pattern in its log. Add the stage and click Save. The header then shows `1 STAGE`.
+
+### A Procedure meets a Stack that never deployed
+
+A Stack that never deployed can count as changed. If a Procedure names it, a push can create its containers a second time, next to the running ones. Deploy each new Stack once by hand. Then add it to the Procedure.
 
 ## SWAG
 
@@ -127,3 +141,17 @@ On a Windows PC, an HTTPS remote can make Git Credential Manager open a browser 
 ### dnf stops on an EPEL package
 
 A plain `dnf update` stops with `nothing provides ... needed by ... from epel`. Oracle Linux sets the dnf variable `releasever` to the major version only. So the EPEL address becomes `epel-10`, which points at the EPEL branch for the next minor release. Until Oracle Linux catches up, update with `dnf update --nobest`, and make sure that the summary shows no package under Removing. Do not pin EPEL to a minor version: after the next upgrade, a forgotten pin keeps the host on a branch with no updates.
+
+## Unraid
+
+### Folders in /etc, /home and /root are gone after a restart
+
+Unraid keeps `/etc`, `/home` and `/root` in RAM. So the folders of Periphery cannot be there. Put the keys, the root directory of Periphery and the env files on a disk, as in [Unraid servers](unraid.md#the-folders).
+
+### The newest Compose at each start
+
+A User Script that downloads the newest Compose at each start of the array takes each new release without a review. It compares no checksum. If the download fails, it can save an error page as the program. Install a pinned plugin with a checksum instead, as in [Unraid servers](unraid.md#docker-compose-on-the-host).
+
+### An exported appdata share opens every container
+
+Any device on the LAN can read and change the files of the containers without a password, also the configuration of a privileged container. The share that holds the appdata is exported over SMB as public and writable. In the settings of the share, set Export to No.

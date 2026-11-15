@@ -181,7 +181,7 @@ cd /root/<your-repo> && docker compose -f komodo/docker-compose.yml --env-file /
 
 The first start after an update of Compose on the host recreates all three containers. That is expected, and the data stays in `/home/komodo`.
 
-Then do steps 6 to 8 of [Start Komodo on server-a](komodo.md#start-komodo-on-server-a), and open Servers in Komodo. Both servers must show OK. `server-b` connects through SWAG on `server-a`, so the proxy on `server-a` must run first. It can take a minute to reconnect.
+Then do steps 6 to 8 of [Start Komodo on server-a](komodo.md#start-komodo-on-server-a), and open Servers in Komodo. Every server must show OK. `server-b` connects through SWAG on `server-a`, so the proxy on `server-a` must run first. It can take a minute to reconnect.
 
 The Periphery of `server-b` starts with:
 
@@ -192,6 +192,8 @@ cd /root/<your-repo> && docker compose -f komodo/periphery-server-b/docker-compo
 ## Reboots and Docker updates
 
 Every service uses `restart: unless-stopped`. After a reboot or a restart of the Docker daemon, Docker starts each container again. The exception is a container that you stopped by hand, for example with Stop in Komodo.
+
+On an Unraid server, the app containers use `restart: "no"` instead. Start them in Komodo after a restart, as in [Unraid servers](unraid.md#after-a-restart-of-the-server).
 
 !!! warning "Do not use `restart: on-failure`"
     With `on-failure`, Docker starts a container again only if it stopped with an exit code other than 0. Postgres stops with code 0 at a clean shutdown, and so do many other services. An update of `docker-ce` restarts the Docker daemon, and the containers stay down.

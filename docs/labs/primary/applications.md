@@ -9,7 +9,7 @@ This page is part of my [Primary Lab](index.md).
 
 All applications run in Docker containers on the hosts in [Servers](servers.md). The tables give the application name and the container names. Database and cache containers are on the same line as their application.
 
-Updates reach the containers through one flow. Renovate runs on the Forgejo Runner on the Cloud Server and opens pull requests in Forgejo. For most stacks, Komodo Core on Suladan then deploys the merged change. For the critical stacks, such as the proxy and Forgejo, I click Deploy in Komodo ([Critical stacks and recovery](../docker-updates/critical-stacks.md)). Komodo Periphery runs the containers on Suladan and on the Cloud Server. The [Automated Docker updates](../docker-updates/index.md) guide explains the full setup.
+Updates reach the containers through one flow. Renovate runs on the Forgejo Runner on the Cloud Server and opens pull requests in Forgejo. For most stacks, Komodo Core on Suladan then deploys the merged change. For the critical stacks, such as the proxy and Forgejo, I click Deploy in Komodo ([Critical stacks and recovery](../docker-updates/critical-stacks.md)). Komodo Periphery runs the containers on Suladan, on the Cloud Server and on Gothmog. The [Automated Docker updates](../docker-updates/index.md) guide explains the full setup.
 
 ## Suladan
 
@@ -43,6 +43,8 @@ Komodo manages the stacks on Suladan.
 | UnPoller | `unpoller` |
 
 ## Morgoth
+
+Morgoth does not use Komodo yet. It moves to Docker Compose and Komodo later, like Gothmog.
 
 | Application | Containers |
 | --- | --- |
@@ -78,8 +80,11 @@ Three of these containers are jobs, not services. A script in the Unraid User Sc
 
 ## Gothmog
 
+Since November 15, 2026, Komodo manages the stack on Gothmog. After a restart of Gothmog, only Komodo Periphery starts by itself, and I start the stack in Komodo. [Unraid servers](../docker-updates/unraid.md) explains the setup.
+
 | Application | Containers |
 | --- | --- |
+| Komodo Periphery | `komodo-periphery` |
 | Scrutiny | `scrutiny` |
 | Telegraf | `telegraf` |
 

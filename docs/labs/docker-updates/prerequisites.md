@@ -48,6 +48,8 @@ Do these steps on each server.
 
 3. If either command fails, install the missing package before you continue.
 
+An Unraid server has no clone of the repository outside Komodo, so it does not need Git. Without Python, `check_images.py` does not run there. See [Unraid servers](unraid.md).
+
 ## Create the repository
 
 Do these steps in Forgejo, signed in as `<your-user>`.

@@ -21,7 +21,7 @@ To roll back an update, you revert its merge commit, and Komodo deploys the old 
 
 ## The example setup
 
-The guide uses two servers as the worked example. Your setup can have one server or more. Wherever the guide names `server-b`, leave those steps out if you have only one server.
+The guide uses two servers as the worked example. Your setup can have one server or more. Wherever the guide names `server-b`, leave those steps out if you have only one server. If a server runs Unraid, also read [Unraid servers](unraid.md), which calls that server `server-c`.
 
 | | `server-a` | `server-b` |
 | --- | --- | --- |
@@ -64,7 +64,7 @@ The commands use placeholders in angle brackets. Replace each one with your own 
 
 | Placeholder | Meaning |
 | --- | --- |
-| `server-a`, `server-b` | The names of your servers. They are also folder names in the repository. |
+| `server-a`, `server-b`, `server-c` | The names of your servers. They are also folder names in the repository. `server-c` is the Unraid server of [Unraid servers](unraid.md). |
 | `<server-a-public-ip>`, `<server-b-public-ip>` | The public IP address of each server. |
 | `<server-a-lan-ip>` | The LAN address of `server-a`. If your `server-b` is on your LAN too, use `<server-b-lan-ip>` in the same way. |
 | `<lan-subnet>` | Your LAN, for example `10.10.0.0/24`. |
@@ -75,6 +75,7 @@ The commands use placeholders in angle brackets. Replace each one with your own 
 | `<github-user>` | Your GitHub user name, for the optional GitHub token of Renovate. |
 | `<procedure-id>` | The ID of a Komodo Procedure, from its page in Komodo. |
 | `<dns-server-ip>` | The address of your DNS server, for example a Pi-hole. |
+| `<appdata>` | On an Unraid server, a folder on the array or on a pool that keeps its files after a restart. |
 
 Unless a step says otherwise, run the server commands in a root shell.
 
@@ -87,12 +88,13 @@ Do the parts in this order. Each part ends in a working state.
 3. [Komodo](komodo.md): Komodo Core, Periphery, and a restricted route through SWAG.
 4. [Move the stacks](move-stacks.md): split the large file into stacks, one at a time.
 5. [Critical stacks and recovery](critical-stacks.md): the proxy and Forgejo, and how to start things without Komodo.
-6. [Webhooks](webhooks.md): a merge deploys the changed stacks.
-7. [Renovate](renovate.md): pull requests for new images.
-8. [Daily use](daily-use.md): merge, check, roll back, reboot.
-9. [Weekly backups](backups.md): a restic backup of every stack, one stopped stack at a time.
-10. [Lessons learned](lessons.md): the traps that cost time.
-11. [Scripts](scripts.md): every script and configuration file in full.
+6. [Unraid servers](unraid.md): what changes when a server runs Unraid. Leave it out if you have no Unraid server.
+7. [Webhooks](webhooks.md): a merge deploys the changed stacks.
+8. [Renovate](renovate.md): pull requests for new images.
+9. [Daily use](daily-use.md): merge, check, roll back, reboot.
+10. [Weekly backups](backups.md): a restic backup of every stack, one stopped stack at a time.
+11. [Lessons learned](lessons.md): the traps that cost time.
+12. [Scripts](scripts.md): every script and configuration file in full.
 
 !!! note "What this guide does not cover"
     It does not install Forgejo, SWAG or Docker. It expects that they run already, as services in your large compose file or elsewhere.
