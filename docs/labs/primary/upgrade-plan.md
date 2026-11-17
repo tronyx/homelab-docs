@@ -1,6 +1,6 @@
 ---
 title: Upgrade plan
-description: The planned hardware work of my Primary Lab, in order: new backups for Morgoth, Proxmox on Bolg, board swaps between the servers, a GPU for Plex, and a mirrored appdata pool for Gothmog.
+description: The planned hardware work of my Primary Lab in order, from new backups for Morgoth and Proxmox on Bolg to board swaps between the servers, a GPU for Plex and a mirrored appdata pool for Gothmog.
 ---
 
 # Upgrade plan
