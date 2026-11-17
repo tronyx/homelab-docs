@@ -22,6 +22,7 @@ Select the diagram to open it full screen. The full-screen version is an SVG fil
 - [Cameras](cameras.md): the Unifi Protect cameras, with models and states.
 - [Storage and backups](storage-and-backups.md): the Unraid arrays, the ReadyNAS shares and the backup flows.
 - [Rack and power](rack-and-power.md): the 45U rack and the map from each UPS to its devices.
+- [Upgrade plan](upgrade-plan.md): the planned hardware work in order, from new backups for Morgoth and Proxmox on Bolg to the board swaps between the servers.
 
 The [GitOps Lab](../gitops.md) runs on VMs on Sauron.
 
@@ -31,7 +32,7 @@ The [GitOps Lab](../gitops.md) runs on VMs on Sauron.
 - Install the Unifi UVC G6 Bullet for the Front (second) camera.
 - Add a Unifi UVC G6 Bullet on the backyard side of the Shed.
 - Replace the dead Unifi UVC G4 Instant in the Shed.
-- Convert Sauron to Proxmox and retire Bolg.
+- Put Proxmox on Bolg and retire Sauron. Sauron's board, CPU and RAM go to Morgoth, Morgoth's go to Gothmog, and Gothmog gets a mirrored appdata pool. The [Upgrade plan](upgrade-plan.md) has the order of the work.
 - Move the servers to the SLAN VLAN 15 (172.27.1.224/27).
 - Remove the old USG-4P from U45 and fit a blank panel.
 - Fix the automatic vCenter configuration backups to the ReadyNAS.

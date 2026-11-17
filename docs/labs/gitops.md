@@ -113,4 +113,4 @@ These parts watch the lab and run its CI jobs:
 - Do a hardening pass on the lab.
 - Deploy mock apps to test high availability and failover.
 
-The [Primary Lab overview](primary/index.md#planned) lists the planned work for the servers, such as the move of Sauron to Proxmox.
+The [Primary Lab overview](primary/index.md#planned) lists the planned work for the servers, such as the retirement of Sauron. The [Upgrade plan](primary/upgrade-plan.md) powers off this lab before that, and rebuilds it on Bolg later.
