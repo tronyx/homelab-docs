@@ -126,6 +126,7 @@ Do these steps on each server, in a root shell. The examples use `server-a`, wit
 | --- | --- | --- |
 | `data_roots` | (required) | Folders whose bind mounts are backed up, for example `["/home"]` or `["/srv/appdata"]`. Not `/`. |
 | `host` | the host name | restic's `--host`. Keep it the same, or the retention and the seed clean-up start a new history. |
+| `title` | the configuration name | The name in the first line of the report, `Backup of <title> succeeded`. For example `"server-a apps"`, because the script backs up the containers and not the whole server. |
 | `require_mount` | none | A share that must answer. The script tests it before the run and before each stack. |
 | `last` | `[]` | Stacks that go at the end, in this order. Put the reverse proxy last. |
 | `exclude` | `[]` | Stacks that `--all` leaves out. A stack named on the command line still runs. |
