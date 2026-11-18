@@ -50,6 +50,7 @@ Morgoth does not use Komodo yet. It moves to Docker Compose and Komodo later, li
 | --- | --- |
 | Autoscan | `autoscan` |
 | Bazarr | `bazarr` |
+| Clonarr | `clonarr` |
 | Grafana | `Grafana` |
 | ImageMaid | `imagemaid` |
 | InfluxDB 3 | `influxdb3` |
