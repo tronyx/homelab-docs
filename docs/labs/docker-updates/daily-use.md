@@ -5,7 +5,7 @@ description: Merge an update, make sure that it deployed, find a forgotten Deplo
 
 # Daily use
 
-Each day, Renovate opens pull requests for new images, up to 10 at a time. You review them, merge the ones you want, and Komodo deploys the normal stacks. This page describes that loop, how to make sure that a merge deployed, and how to roll back.
+Each day, Renovate opens pull requests for new images, up to 10 at a time. You review them, merge the ones you want, and Komodo deploys the normal stacks. Only the update of Renovate's own image merges by itself ([Renovate's own image](renovate.md#renovates-own-image)). This page describes that loop, how to make sure that a merge deployed, and how to roll back.
 
 ## Merge an update
 

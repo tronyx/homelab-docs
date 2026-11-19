@@ -104,6 +104,10 @@ After a revert, a later pull request can have the same commit as the reverted on
 
 Turning off minor updates for MariaDB and Mongo can also hide their patch updates. When a newer minor version and a newer patch both exist, Renovate offers only the minor update by default, and the rule turns that off. Set `separateMinorPatch` for those images, as in the `renovate.json` of the [Renovate](renovate.md) part, so that the patch update gets its own pull request.
 
+### A release-age wait holds an update for good
+
+`minimumReleaseAge` makes Renovate wait until a release is old enough. Renovate reads the age from the release date, and it gets the date of a Docker image only from the tag list of Docker Hub. Docker Hub gives Renovate only the first 10 pages of 100 tags, even with a Docker Hub token in a host rule. So an image with more than 1,000 tags, such as `renovate/renovate`, gets no date, and neither does an image from `ghcr.io`. With the default `minimumReleaseAgeBehaviour`, `timestamp-required`, Renovate marks each such update as pending and never opens its pull request. Set `"minimumReleaseAgeBehaviour": "timestamp-optional"` in the same rule, so that an update without a date goes ahead.
+
 ### Bitnami tags are gone
 
 In 2025, Bitnami removed most of its free version tags from Docker Hub. An image such as `bitnami/wordpress:latest` gets new digests but no versions, and a pull of an old version tag can fail. Plan a move to the official image, and keep the old Bitnami image on the host while you need it for a rollback.

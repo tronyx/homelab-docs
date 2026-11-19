@@ -5,7 +5,7 @@ description: Run Renovate daily in Forgejo Actions, with one pull request per st
 
 # Renovate
 
-Renovate is a bot that looks for newer images and opens a pull request for each change. Here it runs every day in Forgejo Actions, from the workflow `.forgejo/workflows/renovate.yml`, with its rules in `renovate.json`. Nothing merges by itself. You review and merge each pull request.
+Renovate is a bot that looks for newer images and opens a pull request for each change. Here it runs every day in Forgejo Actions, from the workflow `.forgejo/workflows/renovate.yml`, with its rules in `renovate.json`. Only the update of Renovate's own image merges by itself. You review and merge every other pull request.
 
 ## The parts
 
@@ -15,7 +15,7 @@ Renovate is a bot that looks for newer images and opens a pull request for each 
 | Token | A token of the bot account with these scopes: `repository` read and write, `user` read, `issue` read and write, `organization` read. Store it in the repository as the Actions secret `RENOVATE_TOKEN`. |
 | GitHub token (optional) | A classic GitHub token of `<github-user>` with only the `read:packages` scope, stored as the Actions secret `RENOVATE_GITHUB_COM_TOKEN`. Renovate uses it for release notes from github.com and to log in to `ghcr.io`, which limits anonymous requests. When it expires, create a new one and replace the secret. |
 | Runner | A Forgejo runner with the label `docker` that can run job containers. |
-| Image | `ghcr.io/renovatebot/renovate` with an exact version and digest. Renovate updates this line itself. |
+| Image | `renovate/renovate` from Docker Hub with an exact version and digest. Renovate updates this line itself. `ghcr.io/renovatebot/renovate` has the same images with the same digests. If you use it, use that name in the last rule of `renovate.json` too. |
 | Label | A label named `deploy-by-hand` in `<your-user>/<your-repo>`, under Issues, then Labels. Create it before the first run, in a color that stands out. Renovate puts it on every pull request that the merge does not deploy. |
 
 !!! note "Runner types"
@@ -45,7 +45,7 @@ Save this file as `.forgejo/workflows/renovate.yml`. It runs every day at 06:00 
       renovate:
         runs-on: docker
         container:
-          image: ghcr.io/renovatebot/renovate:44.221.5@sha256:ff73c6043e78a4fa0d32378bc2093e65fceb082a040d10db20add14ebe1c650a
+          image: renovate/renovate:44.252.5@sha256:e4d29c5451c80fc7fa967c27a8cd93a6330300ee36a82364839b2c81575552cc
         timeout-minutes: 30
         env:
           RENOVATE_PLATFORM: forgejo
@@ -72,7 +72,7 @@ Without the optional GitHub token, remove the lines `RENOVATE_GITHUB_COM_TOKEN` 
 
 ## The rules
 
-Save this file as `renovate.json` in the root of the repository. If your critical stacks have other folders, change the paths in the rule with `prBodyNotes` for critical stacks, the second rule from the end.
+Save this file as `renovate.json` in the root of the repository. If your critical stacks have other folders, change the paths in the rule with `prBodyNotes` for critical stacks, the third rule from the end.
 
 ??? example "renovate.json"
 
@@ -152,6 +152,17 @@ Save this file as `renovate.json` in the root of the repository. If your critica
           "prBodyNotes": [
             "Komodo does not deploy this file. After the merge, apply it by hand."
           ]
+        },
+        {
+          "description": "The image of Renovate itself merges by itself. It changes only the workflow, and no stack deploys. A major update stays a review. Renovate gets no release date for this image, so the 3-day wait applies only if a date comes.",
+          "matchFileNames": [".forgejo/workflows/**"],
+          "matchPackageNames": ["renovate/renovate"],
+          "matchUpdateTypes": ["minor", "patch", "digest"],
+          "minimumReleaseAge": "3 days",
+          "minimumReleaseAgeBehaviour": "timestamp-optional",
+          "automerge": true,
+          "automergeType": "pr",
+          "ignoreTests": true
         }
       ]
     }
@@ -167,14 +178,15 @@ What the rules do:
 6. LinuxServer tags such as `5.9.0-ls496` compare by version, then by the build number after `-ls`.
 7. A pull request for a critical stack or for `komodo/` carries a note that the merge does not deploy it. It also carries the label `deploy-by-hand`, which the list of pull requests shows.
 8. Renovate assigns each new pull request to `<your-user>`, so Forgejo's filter "Assigned to you" lists every update. Renovate has no option to assign the Dependency Dashboard issue. Watch the repository to be told about it.
+9. A minor, patch or digest update of Renovate's own image merges by itself, as a pull request. It changes only the workflow, and no stack deploys. A major update stays a review, because a major version changes settings and defaults. [Renovate's own image](#renovates-own-image) tells more.
 
 !!! tip "Database tags must name a series"
     Use a tag such as `postgres:18`, `redis:8-alpine` or `mariadb:11.4.13` for every database. A tag such as `latest` or `alpine` follows the newest major version. So a digest update of such a tag can move a database to a new major version without a review.
 
-To test a change to `renovate.json` before you push it, run the Renovate validator on your PC with the version of the workflow's image:
+To test a change to `renovate.json` before you push it, run the Renovate validator on your PC, in the root of the repository. The validator must have the Renovate version of the workflow's image. That version changes by itself, so the command reads it from the workflow:
 
 ```bash
-npx --yes --package renovate@44.221.5 -- renovate-config-validator --strict
+v=$(sed -n 's/.*renovate\/renovate:\([0-9.]*\).*/\1/p' .forgejo/workflows/renovate.yml) && echo "Renovate $v" && npx --yes --package "renovate@$v" -- renovate-config-validator --strict
 ```
 
 ## Run Renovate by hand
@@ -205,10 +217,27 @@ What happens after the merge depends on the folder:
 | A stack in a Procedure | The webhook runs the Procedure, and Komodo deploys the stack. Compose recreates only the changed service. |
 | A critical stack | Nothing deploys. Click Deploy on the Stack in Komodo when you are ready. |
 | `komodo/` | Nothing deploys. Apply the file by hand, as below. |
-| `.forgejo/workflows` | The next Renovate run uses the new image. |
+| `.forgejo/workflows` | The next Renovate run uses the new image. A minor or patch update of Renovate merges by itself. |
 
 !!! note "A pull request that you close by hand"
     Renovate treats a pull request that you close without a merge as ignored, and it does not open it again for that version. If an update was obsolete, Renovate closes the pull request by itself. If a pull request shows `branch already included` after a revert, tick its checkbox so that Renovate rebuilds the branch.
+
+## Renovate's own image
+
+The last rule of `renovate.json` merges the updates of Renovate itself. Without it, Renovate falls behind, and you review an update that deploys nothing. The rule covers `renovate/renovate` in `.forgejo/workflows` only, so no stack image matches it. It has these settings:
+
+| Setting | Meaning |
+| --- | --- |
+| `matchUpdateTypes: ["minor", "patch", "digest"]` | A major update stays a review. |
+| `automerge: true` and `automergeType: "pr"` | Renovate opens a pull request and merges it itself. The pull request keeps a record and sends a notification. |
+| `ignoreTests: true` | Use it if the repository runs no checks on pull requests. Without it, Renovate waits for checks that never come. |
+| `minimumReleaseAge: "3 days"` | Renovate waits until a release is 3 days old. Most bad releases are replaced within a day or two. |
+| `minimumReleaseAgeBehaviour: "timestamp-optional"` | A release with no date does not wait. |
+
+Renovate reads the date of a Docker release only from the tag list of Docker Hub. `renovate/renovate` has more than 1,000 tags, and Docker Hub refuses page 11 of that list to Renovate, with or without a Docker Hub token. So Renovate gets no date for its own image, and the update merges without the 3-day wait. Each run logs a warning that some releases had no `releaseTimestamp`. That warning is expected. Without `timestamp-optional`, the update stays pending for good ([Lessons learned](lessons.md#a-release-age-wait-holds-an-update-for-good)).
+
+!!! warning "A Renovate release that breaks the run"
+    A Renovate release that cannot run cannot repair itself, and then no update comes for any stack. Look at the Actions tab from time to time for a failed run. To recover, revert the merge of the Renovate pull request, as in [Roll back an update](daily-use.md#roll-back-an-update). Then add `"allowedVersions": "!/^44\\.252\\.7$/"` to the last rule, with the bad version in place of `44.252.7`. Without that line, the next run opens the same update again and merges it again. Remove the line when a newer release merged without a problem.
 
 ## Apply a komodo/ update by hand
 
