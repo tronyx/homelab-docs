@@ -229,7 +229,7 @@ The last rule of `renovate.json` merges the updates of Renovate itself. Without 
 | Setting | Meaning |
 | --- | --- |
 | `matchUpdateTypes: ["minor", "patch", "digest"]` | A major update stays a review. |
-| `automerge: true` and `automergeType: "pr"` | Renovate opens a pull request and merges it itself. The pull request keeps a record and sends a notification. |
+| `automerge: true` and `automergeType: "pr"` | Renovate opens a pull request and merges it itself, a few minutes later. It does not wait for another daily run. The pull request keeps a record and sends a notification. |
 | `ignoreTests: true` | Use it if the repository runs no checks on pull requests. Without it, Renovate waits for checks that never come. |
 | `minimumReleaseAge: "3 days"` | Renovate waits until a release is 3 days old. Most bad releases are replaced within a day or two. |
 | `minimumReleaseAgeBehaviour: "timestamp-optional"` | A release with no date does not wait. |

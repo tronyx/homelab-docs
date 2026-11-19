@@ -71,7 +71,7 @@ A push to any other branch does nothing. The branch filter in Forgejo stops the 
 
 1. Push a commit that changes only a comment in one normal stack file.
 2. In Forgejo, open the webhook. The newest delivery must have a green check. Test delivery sends the newest commit on `main` again, so it deploys nothing new.
-3. In Komodo, open the Procedure. The delivery must start one run. The log lists every stack of the pattern. A stack that Komodo deploys takes a few seconds, and a stack with no change takes less than a second. The run must end with `The procedure has completed with no errors`. If the log shows only `executing procedure` and that line, and names no stack, the Procedure has no stage. Add the stage, click Save, and click Test delivery on the webhook in Forgejo.
+3. In Komodo, open the Procedure. The delivery must start one run. The log lists every stack of the pattern. A stack that Komodo deploys takes a few seconds, and a stack with no change takes less than a second. An update to a new version of a large image can take several minutes, because Periphery pulls the images first. Until the pull ends, the log shows no new line, and the old containers keep running. To see that a pull still runs, run `ps -eo pid,etime,args | grep 'compose -p .* pull' | grep -v grep` on the server of the stack. The run must end with `The procedure has completed with no errors`. If the log shows only `executing procedure` and that line, and names no stack, the Procedure has no stage. Add the stage, click Save, and click Test delivery on the webhook in Forgejo.
 4. On `server-a`, show the newest webhook calls in the SWAG log. Each line must show `<server-b-public-ip>` and the status `200`:
 
     ```bash
